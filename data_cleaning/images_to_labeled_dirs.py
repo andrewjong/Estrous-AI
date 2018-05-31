@@ -18,17 +18,22 @@ The four classes are: proestrus (1), estrus (2) metestrus (3), diestrus (4)
 import argparse
 import numpy as np
 import pandas as pd
-import glob, os
-from shutil import copy2 # for copying files
-from tqdm import tqdm # handy progress bar
+import glob
+import os
+from shutil import copy2  # for copying files
+from tqdm import tqdm  # handy progress bar
 
 cwd = os.getcwd()
 
 # set up command line arguments
-parser = argparse.ArgumentParser(description="Sort estrous cycle image data to class subdirectories.")
-parser.add_argument("labels_file", help="Excel file containing the labels for each image")
-parser.add_argument("from_dir", help="Root directory of where images currently are")
-parser.add_argument("to_dir", help="Root directory of where to put the sorted images")
+parser = argparse.ArgumentParser(
+    description="Sort estrous cycle image data to class subdirectories.")
+parser.add_argument(
+    "labels_file", help="Excel file containing the labels for each image")
+parser.add_argument(
+    "from_dir", help="Root directory of where images currently are")
+parser.add_argument("--to_dir", default=os.path.join("..", "data", "lavage_images"),
+                    help="Root directory of where to put the sorted images (default: '../data/lavage_images/')")
 args = parser.parse_args()
 
 
@@ -58,18 +63,19 @@ with tqdm(total=len(labels_df)) as pbar:
         animal_label = row.Index
 
         # iterate over each row's element
-        # (we iterate like this because the "row" returned by itertuples doesn't store the full column name. 
+        # (we iterate like this because the "row" returned by itertuples doesn't store the full column name.
         # this way includes it)
         for i in range(1, len(labels_df.columns)):
             phase_num = row[i]
-            if not pd.isnull(phase_num): 
+            if not pd.isnull(phase_num):
                 phase_label = PHASE_NUM_TO_LABEL[str(phase_num)]
                 # columns are offset by 1 due to no animal label
-                date_label = labels_df.columns[i - 1] 
+                date_label = labels_df.columns[i - 1]
 
                 f_name = animal_label + "_" + date_label
-                # glob includes subdirectories 
-                search_glob = os.path.join(args.from_dir, "**", f_name + "*.tif") 
+                # glob includes subdirectories
+                search_glob = os.path.join(
+                    args.from_dir, "**", f_name + "*.tif")
 
                 for file in glob.glob(search_glob, recursive=True):
                     labeled_dir = os.path.join(args.to_dir, phase_label)
@@ -77,6 +83,3 @@ with tqdm(total=len(labels_df)) as pbar:
 
         pbar.update(1)
 print("Done!")
-
-
-
