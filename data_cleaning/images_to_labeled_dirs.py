@@ -51,10 +51,10 @@ for _, label in PHASE_NUM_TO_LABEL.items():
     os.makedirs(label_dir, exist_ok=True)
 
 # read our spreadsheet
-print(f'Reading labels from "{args.labels_file}".')
 labels_df = pd.read_csv(args.labels_file, index_col=0, dtype=str)
+print(f'Reading labels for {len(labels_df)} animals from "{args.labels_file}".')
 
-print(f'Reading images from "{args.from_dir}".')
+print(f'Taking images from "{args.from_dir}".')
 print(f'Sorting and copying files to "{args.to_dir}"...')
 # show a progress bar
 with tqdm(total=len(labels_df)) as pbar:
