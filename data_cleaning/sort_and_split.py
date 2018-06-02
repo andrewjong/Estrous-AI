@@ -19,12 +19,13 @@ The folder structure will look like this:
         ... 
 """
 import argparse
-import numpy as np
-import pandas as pd
-from random import Random
 import glob
 import os
+from random import Random
 from shutil import copy2  # for copying files
+
+import numpy as np
+import pandas as pd
 from tqdm import tqdm  # handy progress bar
 
 cwd = os.getcwd()
@@ -43,7 +44,8 @@ parser.add_argument("-s", "--split", nargs=3, type=int, default=[60, 20, 20],
 args = parser.parse_args()
 # make sure split is valid, i.e. sums to 100
 split_sum = sum(args.split)
-assert split_sum == 100, "Split percentages must sum to 100. Sum=" + str(split_sum) + "."
+assert split_sum == 100, "Split percentages must sum to 100. Sum=" + \
+    str(split_sum) + "."
 
 # map phase numbers to the correct phase label. this is for sorting the excel spreadsheet
 PHASE_NUM_TO_LABEL = {
