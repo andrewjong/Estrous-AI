@@ -1,20 +1,22 @@
-""" This script moves images into separate sub-directories (folders) for train/validation/test sets.
+DOC = """ This script moves images into separate subdirectories (folders) for train/validation/test sets.
 The images are additionally separated into folders by phase label.
 
 This formats the data for PyTorch's torchvision.datasets.ImageFolder loader function:
-https://pytorch.org/docs/stable/torchvision/datasets.html#imagefolder
+https://pytorch.org/docs/stable/torchvision/datasets.html#imagefolder.
 
+Be sure to delete existing files before rerunning the script!"
+"""
+"""
 The folder structure will look like this: 
-    root/proestrus/C##_M_DD_image#.png
-    root/proestrus/C##_M_DD_image#.png
-    root/proestrus/C##_M_DD_image#.png
-
-    root/estrus/C##_M_DD_image#.png
-    root/estrus/C##_M_DD_image#.png
-    root/estrus/C##_M_DD_image#.png
-
-The four classes are: proestrus (1), estrus (2), metestrus (3), diestrus (4)
-
+    train/
+        proestrus/
+        estrus/
+        metestrus/
+        diestrus/
+    val/
+        ... 
+    test/ 
+        ... 
 """
 import argparse
 import numpy as np
@@ -28,10 +30,7 @@ from tqdm import tqdm  # handy progress bar
 cwd = os.getcwd()
 
 # set up command line arguments
-parser = argparse.ArgumentParser(
-    description="This script moves estrous cell images into separate sub-directories (folders) for train/validation/test sets. \
-                 The images are additionally separated into folders by phase label. \n \
-                 Be sure to delete existing files before rerunning the script!")
+parser = argparse.ArgumentParser(description=DOC)
 parser.add_argument(
     "labels_file", help="CSV file containing the labels for each image")
 parser.add_argument(
