@@ -37,7 +37,7 @@ parser.add_argument(
 parser.add_argument(
     "from_dir", help="Root directory of where the unsorted images currently are")
 parser.add_argument("to_dir", nargs='?', default=os.path.join("..", "data", "lavage"),
-                    help="Root directory of where to put the sorted images (default: '../data/lavage_all/')")
+                    help="Root directory of where to put the sorted images (default: '../data/lavage/')")
 parser.add_argument("-s", "--split", nargs=3, type=int, default=[60, 20, 20],
                     help="Split percentages for train, validation, and test sets respectively. E.g. '60 20 20'. \
                     Numbers must add up to 100! (default: 60 train, 20 val, 20 test).")

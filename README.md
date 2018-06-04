@@ -9,3 +9,8 @@ Once Anaconda is installed, create the envrionment from the dependencies file. T
 
 From the project root, run: 
 ``` conda env create -f environment.yml```.
+
+# Getting the Data
+Contact Josh or Andrew for the data. Once the data is obtained, use the `data_cleaning/sort_and_split.py` to split the data into train/validation/test sets organized by label.
+
+```python sort_and_split.py labels.csv -s 70 15 15```
