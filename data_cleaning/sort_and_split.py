@@ -38,9 +38,12 @@ parser.add_argument(
     "from_dir", help="Root directory of where the unsorted images currently are")
 parser.add_argument("to_dir", nargs='?', default=os.path.join("..", "data", "lavage"),
                     help="Root directory of where to put the sorted images (default: '../data/lavage/')")
-parser.add_argument("-s", "--split", nargs=3, type=int, default=[60, 20, 20],
+parser.add_argument("-s", "--split", nargs=3, type=int, default=[70, 15, 15],
                     help="Split percentages for train, validation, and test sets respectively. E.g. '60 20 20'. \
                     Numbers must add up to 100! (default: 60 train, 20 val, 20 test).")
+parser.add_argument("-e", "--exclude", nargs='+',
+                    help='Exclude files with the specified strings in their file paths. \
+                    E.g. "40x" would ignore all images with file paths containing "40x"')
 args = parser.parse_args()
 # make sure split is valid, i.e. sums to 100
 split_sum = sum(args.split)
@@ -90,8 +93,9 @@ with tqdm(total=len(labels_df)) as pbar:
                 search_glob = os.path.join(
                     args.from_dir, "**", f_name + "*.tif")
                 # match each found file to the appropriate phase label
-                for file in glob.glob(search_glob, recursive=True):
-                    labels_to_files[phase_label].append(file)
+                for filepath in glob.glob(search_glob, recursive=True):
+                    if all(ignore_word not in filepath for ignore_word in args.ignore):
+                        labels_to_files[phase_label].append(filepath)
 
         pbar.update(1)
 
