@@ -14,7 +14,7 @@ from src.cnn_resnet_transfer import ResNet18
 
 # add your class here
 TRAIN_MODEL_CHOICES = {
-    "resnet18_transfer": ResNet18("finetune"),
+    "resnet18_transfer": ResNet18("fixed"),
     # "cnn_basic": "TODO CNN BASIC CLASS",
     # "svc_transfer": "TODO SVC CLASS",
 }
@@ -50,6 +50,10 @@ args = parser.parse_args()
 
 
 def main():
+    # make directory paths
+    os.makedirs(args.results_dir, exist_ok=True)
+    os.makedirs(args.save_dir, exist_ok=True)
+
     chosen = TRAIN_MODEL_CHOICES[args.model]
 
     # obtain train and validation datasets and dataloaders
@@ -158,8 +162,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
 
         print()
 
-    results_file.close()
-
     time_elapsed = time.time() - start_time
     print(f'Training completed in {time_elapsed // 60}m {time_elapsed % 60}s')
     print(f'Best validation accuracy: {best_acc:.4f}')
@@ -175,8 +177,10 @@ def make_results_file():
     Returns:
         string -- path of the created file
     """
+
     results_filepath = os.path.join(
         args.results_dir, args.model + "_train.csv")
+
     with open(results_filepath, 'w') as f:
         f.write("epoch,loss,train_acc,val_acc\n")
     return results_filepath
