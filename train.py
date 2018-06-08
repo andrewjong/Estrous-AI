@@ -14,7 +14,7 @@ from src.cnn_resnet_transfer import ResNet18
 
 # add your class here
 TRAIN_MODEL_CHOICES = {
-    "resnet18_transfer": ResNet18("fixed"),
+    "resnet18_transfer": ResNet18,
     # "cnn_basic": "TODO CNN BASIC CLASS",
     # "svc_transfer": "TODO SVC CLASS",
 }
@@ -45,16 +45,17 @@ parser.add_argument("-r", "--results_dir",
                     help='Directory to store train results \
                     (default: "results"). If the directory path does not \
                     exist, the program will create it.')
+parser.add_argument("-a", "--added_args", nargs="+",
+                    help="Pass addiitional arguments for instantiating the \
+                    chosen model.")
 
 args = parser.parse_args()
 
 
 def main():
-    # make directory paths
-    os.makedirs(args.results_dir, exist_ok=True)
-    os.makedirs(args.save_dir, exist_ok=True)
-
-    chosen = TRAIN_MODEL_CHOICES[args.model]
+    # instantiate the model object
+    chosen_class = TRAIN_MODEL_CHOICES[args.model]
+    chosen = chosen_class(*args.added_args)
 
     # obtain train and validation datasets and dataloaders
     datasets, dataloaders = utils.get_datasets_and_loaders(
@@ -62,6 +63,8 @@ def main():
     dataset_sizes = {subset: len(datasets[subset])
                      for subset in ('train', 'val')}
 
+    # make results dir path
+    os.makedirs(args.results_dir, exist_ok=True)
     # train
     trained_model = train_model(
         chosen.model, chosen.criterion, chosen.optimizer,
@@ -69,6 +72,7 @@ def main():
         dataloaders, dataset_sizes)
 
     # Save the model
+    os.makedirs(args.save_dir, exist_ok=True)
     save_path = os.path.join(args.save_dir, args.model + ".pth")
     torch.save(trained_model.state_dict(), save_path)
 
@@ -90,7 +94,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
 
-    # open the results file
+    # create the results file header
     results_filepath = make_results_file()
 
     # setup our best results to return later
@@ -169,11 +173,12 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
     model.load_state_dict(best_model_weights)
     return model
 
+
 def make_results_file():
     """Creates a file (overwrites if existing) for recording train results
     using the results path specified in parse_args.
     Adds in a header for the file as "epoch,loss,train_acc,val_acc"
-    
+
     Returns:
         string -- path of the created file
     """
@@ -184,6 +189,7 @@ def make_results_file():
     with open(results_filepath, 'w') as f:
         f.write("epoch,loss,train_acc,val_acc\n")
     return results_filepath
+
 
 if __name__ == '__main__':
     main()
