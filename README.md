@@ -16,5 +16,5 @@ Contact Josh or Andrew for the data. Once the data is obtained, use the `data_cl
 ```python sort_and_split.py labels.csv -s 70 15 15```
 
 # Train a Model
-A model for ResNet18 transfer-learning by finetuning currently exists in the repository. You can train it with the following:
+The code for a ResNet18 transfer-learning by finetuning model currently exists in the repository. You can train it with the following:
 ```python train.py resnet18_transfer```.
