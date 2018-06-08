@@ -11,12 +11,12 @@ class ResNet18:
         ValueError -- if passed attribute is not "train" or "fixed"
     """
 
-    def __init__(self, finetune_or_fixed):
+    def __init__(self, finetune_or_fixed="finetune"):
         """ Initialize the class
 
         Arguments:
             finetune_or_fixed {string} -- whether to do transfer learning by 
-                finetuning or as a fixed feature extractor
+                finetuning or as a fixed feature extractor. (default: "finetune")
 
         Raises:
             ValueError -- if finetune_or_fixed is not either "finetune" or
@@ -27,7 +27,8 @@ class ResNet18:
         num_features = self.model.fc.in_features  # get num input features of fc layer
 
         if finetune_or_fixed == "finetune":
-            self.model.fc = nn.Linear(num_features, 4) # tack on output of 4 classes
+            # tack on output of 4 classes
+            self.model.fc = nn.Linear(num_features, 4)
             self.optimizer = optim.SGD(
                 self.model.parameters(), lr=0.001, momentum=0.9)
 
@@ -40,8 +41,8 @@ class ResNet18:
                 self.model.fc.parameters(), lr=0.001, momentum=0.9)
 
         else:
-            raise ValueError('finetune_or_fixed argument must be either \
-            "finetune" or "fixed". ' + f'Received "{finetune_or_fixed}".')
+            raise ValueError('"finetune_or_fixed" argument value must be either ' +
+                             f'"finetune" or "fixed". Received: "{finetune_or_fixed}".')
 
         self.criterion = nn.CrossEntropyLoss()
 
