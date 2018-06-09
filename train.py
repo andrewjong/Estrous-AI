@@ -47,6 +47,7 @@ parser.add_argument("-r", "--results_dir",
                     (default: "results"). If the directory path does not \
                     exist, the program will create it.')
 parser.add_argument("-a", "--added_args", nargs="+",
+                    default=[],
                     help="Pass addiitional arguments for instantiating the \
                     chosen model.")
 
@@ -74,7 +75,8 @@ def main():
 
     # Save the model
     os.makedirs(args.save_dir, exist_ok=True)
-    save_path = os.path.join(args.save_dir, args.model + ".pth")
+    save_fname = make_model_fname() + ".pth"
+    save_path = os.path.join(args.save_dir, save_fname)
     torch.save(trained_model.state_dict(), save_path)
 
 
@@ -180,6 +182,16 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
     model.load_state_dict(best_model_weights)
     return model
 
+def make_model_fname():
+    """Generate a file name that includes the model name, plus any additional
+    args passed to instantiate the model object, separated by underscores.
+    
+    Returns:
+        string -- formatted as "[model]_[additional_args]"
+    """
+
+    return "_".join([args.model] + args.added_args) 
+
 
 def make_results_file():
     """Creates a file (overwrites if existing) for recording train results
@@ -191,7 +203,7 @@ def make_results_file():
     """
 
     results_filepath = os.path.join(
-        args.results_dir, args.model + "_train.csv")
+        args.results_dir, make_model_fname() + "_train.csv")
 
     with open(results_filepath, 'w') as f:
         f.write("epoch,loss,train_acc,val_acc\n")
