@@ -11,6 +11,7 @@ from torchvision import datasets, models, transforms
 
 import utils
 from src.cnn_resnet_transfer import ResNet18
+from tqdm import tqdm
 
 # add your class here
 TRAIN_MODEL_CHOICES = {
@@ -109,6 +110,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
         print("-" * 10)
 
         for phase in ('train', 'val'):
+            print(phase.capitalize() + ':')
             if phase == 'train':
                 # update the scheduler only for train, once per epoch
                 scheduler.step()
@@ -120,29 +122,32 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
             running_loss = 0.0
             running_corrects = 0
 
-            # iterate over data
-            for inputs, labels in dataloaders[phase]:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+            # progress bar for each epoch phase
+            with tqdm(total=dataset_sizes[phase]) as pbar:
+                # iterate over data
+                for inputs, labels in dataloaders[phase]:
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
 
-                optimizer.zero_grad()  # reset gradients
+                    optimizer.zero_grad()  # reset gradients
 
-                # set gradient to true only for training
-                with torch.set_grad_enabled(phase == 'train'):
-                    # forward
-                    outputs = model(inputs)
-                    _, predictions = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)
+                    # set gradient to true only for training
+                    with torch.set_grad_enabled(phase == 'train'):
+                        # forward
+                        outputs = model(inputs)
+                        _, predictions = torch.max(outputs, 1)
+                        loss = criterion(outputs, labels)
 
-                    # backprop and update weights during train
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+                        # backprop and update weights during train
+                        if phase == 'train':
+                            loss.backward()
+                            optimizer.step()
 
-                # found link here: https://discuss.pytorch.org/t/interpreting-loss-value/17665/10
-                # we multiply by input size, because loss.item() is only for a single example in our batch
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(predictions == labels.data)
+                    # found link here: https://discuss.pytorch.org/t/interpreting-loss-value/17665/10
+                    # we multiply by input size, because loss.item() is only for a single example in our batch
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(predictions == labels.data)
+                    pbar.update(inputs.size(0))
 
             # the epoch loss is the average loss across the entire dataset
             epoch_loss = running_loss / dataset_sizes[phase]
