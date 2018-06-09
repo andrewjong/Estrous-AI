@@ -71,7 +71,7 @@ print(f'Reading images from "{args.from_dir}".')
 print(f'Sorting files...')
 
 # show a progress bar for file sorting
-with tqdm(total=len(labels_df)) as pbar:
+with tqdm(total=len(labels_df), unit="sorted") as pbar:
     # iterate over each row in the dataframe (using itertuples for speed)
     for row in labels_df.itertuples():
         animal_label = row.Index
@@ -106,7 +106,7 @@ val_split_percent = .01 * args.split[1]
 
 total_files_to_copy = sum(len(x) for x in labels_to_files.values())
 # make another progress bar for copying files
-with tqdm(total=total_files_to_copy) as pbar:
+with tqdm(total=total_files_to_copy, unit="copied") as pbar:
     for label, files in labels_to_files.items():
         # shuffle for fair training. use a seed on Random for consistency in shuffling
         Random(42).shuffle(files)

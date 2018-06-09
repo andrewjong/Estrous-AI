@@ -109,21 +109,21 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
         print(f'Epoch {epoch + 1}/{num_epochs}')
         print("-" * 10)
 
+        # train and evaluate on validation for each epoch
         for phase in ('train', 'val'):
-            print(phase.capitalize() + ':')
             if phase == 'train':
-                # update the scheduler only for train, once per epoch
-                scheduler.step()
+                scheduler.step()  # update the scheduler only for train, once per epoch
                 model.train()  # set model to train mode
             else:
                 model.eval()  # set model to evaluation mode
 
-            # variables for evaluating model accuracy
+            # variables for accumulating batch statistics
             running_loss = 0.0
             running_corrects = 0
 
             # progress bar for each epoch phase
-            with tqdm(total=dataset_sizes[phase]) as pbar:
+            with tqdm(desc=phase.capitalize(), total=dataset_sizes[phase],
+                      leave=False, unit="images") as pbar:
                 # iterate over data
                 for inputs, labels in dataloaders[phase]:
                     inputs = inputs.to(device)
@@ -143,18 +143,20 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
                             loss.backward()
                             optimizer.step()
 
-                    # found link here: https://discuss.pytorch.org/t/interpreting-loss-value/17665/10
                     # we multiply by input size, because loss.item() is only for a single example in our batch
+                    # found link here: https://discuss.pytorch.org/t/interpreting-loss-value/17665/10
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += torch.sum(predictions == labels.data)
+
+                    # update pbar with size of our batch
                     pbar.update(inputs.size(0))
 
             # the epoch loss is the average loss across the entire dataset
             epoch_loss = running_loss / dataset_sizes[phase]
             # accuracy is also the average of the corrects
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
-
-            print(f'{phase} Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
+            print(
+                f'{phase.capitalize()} Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
 
             if phase == 'train':
                 # write train loss and accuracy
@@ -172,7 +174,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
         print()
 
     time_elapsed = time.time() - start_time
-    print(f'Training completed in {time_elapsed // 60}m {time_elapsed % 60}s')
+    print(f'Training completed in {int(time_elapsed // 60)}m {int(time_elapsed % 60)}s')
     print(f'Best validation accuracy: {best_acc:.4f}')
     # load best model weights and return the model
     model.load_state_dict(best_model_weights)
