@@ -10,12 +10,12 @@ import torch.optim as optim
 from torchvision import datasets, models, transforms
 
 import utils
-from src.cnn_resnet_transfer import ResNet18
+from src.cnn_resnet_transfer import ResNet
 from tqdm import tqdm
 
 # add your class here
 TRAIN_MODEL_CHOICES = {
-    "resnet18_transfer": ResNet18,
+    "resnet18_transfer": ResNet,
     # "cnn_basic": "TODO CNN BASIC CLASS",
     # "svc_transfer": "TODO SVC CLASS",
 }
