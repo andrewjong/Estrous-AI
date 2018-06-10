@@ -1,17 +1,19 @@
 import torch.nn as nn
 import torch.optim as optim
 
-import torchvision
+import torchvision.models
 
 
-class ResNet18:
+class ResNet:
     """Class for ResNet18 model attributes.
 
     Raises:
         ValueError -- if passed attribute is not "train" or "fixed"
     """
 
-    def __init__(self, finetune_or_fixed="finetune"):
+    available_sizes = (18, 34, 50, 101, 152)
+
+    def __init__(self, num_layers=18, finetune_or_fixed="finetune"):
         """ Initialize the class
 
         Arguments:
@@ -22,8 +24,12 @@ class ResNet18:
             ValueError -- if finetune_or_fixed is not either "finetune" or
                 "fixed"
         """
+        if not any(int(num_layers) == size for size in self.available_sizes):
+            raise ValueError('"num_layers" parameters must be one of the ' +
+                f'available sizes {self.available_sizes}. Received {num_layers}.')
 
-        self.model = torchvision.models.resnet18(pretrained=True)
+        self.model = getattr(torchvision.models,
+                             "resnet" + num_layers)(pretrained=True)
         num_features = self.model.fc.in_features  # get num input features of fc layer
 
         if finetune_or_fixed == "finetune":
