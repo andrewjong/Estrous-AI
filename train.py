@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 # add your class here
 TRAIN_MODEL_CHOICES = {
-    "resnet18_transfer": ResNet,
+    "resnet_transfer": ResNet,
     # "cnn_basic": "TODO CNN BASIC CLASS",
     # "svc_transfer": "TODO SVC CLASS",
 }
@@ -55,15 +55,17 @@ args = parser.parse_args()
 
 
 def main():
-    # instantiate the model object
-    chosen_class = TRAIN_MODEL_CHOICES[args.model]
-    chosen = chosen_class(*args.added_args)
-
     # obtain train and validation datasets and dataloaders
     datasets, dataloaders = utils.get_datasets_and_loaders(
         args.data_dir, "train", "val")
     dataset_sizes = {subset: len(datasets[subset])
                      for subset in ('train', 'val')}
+
+    num_classes = len(datasets["train"].classes)
+
+    # instantiate the model object
+    chosen_architecture = TRAIN_MODEL_CHOICES[args.model]
+    chosen = chosen_architecture(num_classes, *args.added_args)
 
     # make results dir path
     os.makedirs(args.results_dir, exist_ok=True)
