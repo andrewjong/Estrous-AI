@@ -13,7 +13,7 @@ class ResNet:
 
     available_sizes = (18, 34, 50, 101, 152)
 
-    def __init__(self, num_layers=18, finetune_or_fixed="finetune"):
+    def __init__(self, num_classes, num_layers="18", finetune_or_fixed="finetune"):
         """ Initialize the class
 
         Arguments:
@@ -34,7 +34,7 @@ class ResNet:
 
         if finetune_or_fixed == "finetune":
             # tack on output of 4 classes
-            self.model.fc = nn.Linear(num_features, 4)
+            self.model.fc = nn.Linear(num_features, num_classes)
             self.optimizer = optim.SGD(
                 self.model.parameters(), lr=0.001, momentum=0.9)
 
@@ -42,7 +42,7 @@ class ResNet:
             # stop gradient tracking in previous layers to freeze them
             for param in self.model.parameters():
                 param.requires_grad = False
-            self.model.fc = nn.Linear(num_features, 4)
+            self.model.fc = nn.Linear(num_features, num_classes)
             self.optimizer = optim.SGD(
                 self.model.fc.parameters(), lr=0.001, momentum=0.9)
 
