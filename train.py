@@ -16,8 +16,6 @@ from tqdm import tqdm
 # add your class here
 TRAIN_MODEL_CHOICES = {
     "resnet_transfer": ResNet,
-    # "cnn_basic": "TODO CNN BASIC CLASS",
-    # "svc_transfer": "TODO SVC CLASS",
 }
 
 # TODO: Convert these arguments into a configuration file later
@@ -185,14 +183,16 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
     return model
 
 def make_model_fname():
-    """Generate a file name that includes the model name, plus any additional
-    args passed to instantiate the model object, separated by underscores.
+    """Generate a file name that includes the dataset name, model name, 
+    plus any additional args passed to instantiate the model object, 
+    separated by underscores.
     
     Returns:
         string -- formatted as "[model]_[additional_args]"
     """
 
-    return "_".join([args.model] + args.added_args) 
+    dataset_name = os.path.basename(args.data_dir)
+    return "_".join([dataset_name, args.model] + args.added_args) 
 
 
 def make_results_file():
