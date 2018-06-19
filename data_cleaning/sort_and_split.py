@@ -102,7 +102,8 @@ with tqdm(total=len(labels_df), unit="sort") as pbar:
                     args.from_dir, "**", f_name + "*.tif")
                 # match each found file to the appropriate phase label
                 for filepath in glob.glob(search_glob, recursive=True):
-                    if all(ignore_word not in filepath for ignore_word in args.exclude):
+                    # make sure the filepath does not have any of the exclude words
+                    if not args.exclude or all(exclusion not in filepath for exclusion in args.exclude):
                         labels_to_files[phase_label].append(filepath)
 
         pbar.update(1)
