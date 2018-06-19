@@ -172,14 +172,14 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
                     f.write(f'{epoch_acc}\n')
                 # deep copy the model if we perform better
                 if epoch_acc > best_accuracy:
-                    best_acc = epoch_acc
+                    best_accuracy = epoch_acc
                     best_model_weights = copy.deepcopy(model.state_dict())
 
         print()
 
     time_elapsed = time.time() - start_time
     print(f'Training completed in {int(time_elapsed // 60)}m {int(time_elapsed % 60)}s')
-    print(f'Best validation accuracy: {best_acc:.4f}')
+    print(f'Best validation accuracy: {best_accuracy:.4f}')
     # load best model weights and return the model
     model.load_state_dict(best_model_weights)
     return model
