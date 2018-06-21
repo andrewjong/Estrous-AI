@@ -18,40 +18,18 @@ pro1 = 'C:\\Projects\\Images\\proestrus1.tif'
 pro2 = 'C:\\Projects\\Images\\proestrus2.tif'
 ex1 = 'C:\\Projects\\Images\\example_cells_1.tif'
 ex2 = 'C:\\Projects\\Images\\example_cells_2.tif'
-img1 = io.imread(di1)
+img = io.imread(di1)
 #Gaussian Smoothing
-smooth = img1
 sigma = 2
-green = img1[:,:,2]
-smooth1_smooth = ndi.filters.gaussian_filter(green,sigma)
-plt.imshow(smooth1_smooth)
-plt.show(smooth1_smooth.any())
+smooth = img[:,:,2]
+smooth_filter = ndi.filters.gaussian_filter(smooth,sigma)
+plt.imshow(smooth_filter)
+plt.show(smooth_filter.any())
 #Adaptive background
 struct = ((np.mgrid[:31,:31][0] - 15)**2 + (np.mgrid[:31,:31][1] - 15)**2) <= 15**2 
-bg = rank.mean(smooth1_smooth, selem=struct)
+bg = rank.mean(smooth_filter, selem=struct)
 #Threshold
-threshold = smooth1_smooth >= bg
+threshold = smooth_filter >= bg
 threshold = ndi.binary_fill_holes(np.logical_not(threshold))
 plt.imshow(threshold,interpolation='none',cmap='gray')
 plt.show(threshold.any())
-
-
-
-
-plt.imshow(img1)
-plt.show(img1.any())
-
-green = img1[:,:,1]
-smooth1_smooth = ndi.filters.gaussian_filter(green,sigma)
-plt.imshow(smooth1_smooth)
-plt.show(smooth1_smooth.any())
-
-green = img1[:,:,2]
-smooth1_smooth = ndi.filters.gaussian_filter(green,sigma)
-plt.imshow(smooth1_smooth)
-plt.show(smooth1_smooth.any())
-
-green = img1[:,:,0]
-smooth1_smooth = ndi.filters.gaussian_filter(green,sigma)
-plt.imshow(smooth1_smooth)
-plt.show(smooth1_smooth.any())
