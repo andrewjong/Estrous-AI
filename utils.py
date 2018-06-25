@@ -35,15 +35,16 @@ def get_datasets_and_loaders(data_dir, *subsets):
 
     Arguments:
         data_dir {string} -- path of directory
-        subsets {string(s)} -- "train", "val", or "test"; pass in multiple if desired.
+        subsets {string(s)} -- "train", "val", or "test"; pass in multiple if 
+            desired.
 
     Returns:
         [type] -- [description]
     """
 
-    image_datasets = {subset: datasets.ImageFolder(os.path.join(data_dir, subset),
-                                                   data_transforms[subset])
-                      for subset in subsets}
+    image_datasets = {subset: datasets.ImageFolder(
+        os.path.join(data_dir, subset), data_transforms[subset])
+        for subset in subsets}
 
     dataloaders = {subset: torch.utils.data.DataLoader(
         image_datasets[subset], batch_size=4, shuffle=True, num_workers=0)
