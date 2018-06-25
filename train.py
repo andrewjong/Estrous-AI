@@ -3,15 +3,11 @@ import copy
 import os
 import time
 
-import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torchvision import datasets, models, transforms
+from tqdm import tqdm
 
 import utils
 from src.cnn_resnet_transfer import ResNet
-from tqdm import tqdm
 
 # add your class here
 TRAIN_MODEL_CHOICES = {
@@ -62,15 +58,15 @@ def main():
     num_classes = len(datasets["train"].classes)
 
     # instantiate the model object
-    chosen_architecture = TRAIN_MODEL_CHOICES[args.model]
-    chosen = chosen_architecture(num_classes, *args.added_args)
+    hyperparameters_class = TRAIN_MODEL_CHOICES[args.model]
+    hyp_params = hyperparameters_class(num_classes, *args.added_args)
 
     # make results dir path
     os.makedirs(args.results_dir, exist_ok=True)
     # train
     trained_model = train_model(
-        chosen.model, chosen.criterion, chosen.optimizer,
-        chosen.lr_scheduler, args.epochs,
+        hyp_params.model, hyp_params.criterion, hyp_params.optimizer,
+        hyp_params.lr_scheduler, args.epochs,
         dataloaders, dataset_sizes)
 
     # Save the model
@@ -87,8 +83,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
     Arguments:
         model {[type]} -- the model to train
         criterion {[type]} -- a criterion (loss function) for the optimizer
-        optimizer {[type]} -- the optimizer to use such as SGD, Adam, RMSProp, etc
-        scheduler {[type]} -- update the learning rate based on epochs completed
+        optimizer {[type]} -- the optimizer to use such as SGD, Adam, etc
+        scheduler {[type]} -- update learning rate based on completed epochs
 
     Keyword Arguments:
         num_epochs {int} -- number of epochs to train for (default: {50})
@@ -145,8 +141,9 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
                             loss.backward()
                             optimizer.step()
 
-                    # we multiply by input size, because loss.item() is only for a single example in our batch
-                    # found link here: https://discuss.pytorch.org/t/interpreting-loss-value/17665/10
+                    # we multiply by input size, because loss.item() is only
+                    # for a single example in our batch found link here:
+                    # https://discuss.pytorch.org/t/interpreting-loss-value/17665/10
                     running_loss += loss.item() * inputs.size(0)
                     running_corrects += torch.sum(predictions == labels.data)
 
@@ -157,8 +154,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
             epoch_loss = running_loss / dataset_sizes[phase]
             # accuracy is also the average of the corrects
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
-            print(
-                f'{phase.capitalize()} Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
+            print(f'{phase.capitalize()} ' +
+                  f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
 
             if phase == 'train':
                 # write train loss and accuracy
@@ -176,23 +173,25 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
         print()
 
     time_elapsed = time.time() - start_time
-    print(f'Training completed in {int(time_elapsed // 60)}m {int(time_elapsed % 60)}s')
+    print(f'Training completed in {int(time_elapsed // 60)}m ' +
+          f'{int(time_elapsed % 60)}s')
     print(f'Best validation accuracy: {best_accuracy:.4f}')
     # load best model weights and return the model
     model.load_state_dict(best_model_weights)
     return model
 
+
 def make_model_fname():
-    """Generate a file name that includes the dataset name, model name, 
-    plus any additional args passed to instantiate the model object, 
+    """Generate a file name that includes the dataset name, model name,
+    plus any additional args passed to instantiate the model object,
     separated by underscores.
-    
+
     Returns:
         string -- formatted as "[model]_[additional_args]"
     """
 
     dataset_name = os.path.basename(args.data_dir)
-    return "_".join([dataset_name, args.model] + args.added_args) 
+    return "_".join([dataset_name, args.model] + args.added_args)
 
 
 def make_results_file():
