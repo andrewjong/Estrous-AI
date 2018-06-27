@@ -7,12 +7,7 @@ import torch
 from tqdm import tqdm
 
 import utils
-from src.cnn_resnet_transfer import ResNet
-
-# add your class here
-TRAIN_MODEL_CHOICES = {
-    "resnet_transfer": ResNet,
-}
+from src.model_choices import TRAIN_MODEL_CHOICES
 
 # TODO: Convert these arguments into a configuration file later
 parser = argparse.ArgumentParser(
@@ -58,8 +53,8 @@ def main():
     num_classes = len(datasets["train"].classes)
 
     # instantiate the model object
-    hyperparameters_class = TRAIN_MODEL_CHOICES[args.model]
-    hyp_params = hyperparameters_class(num_classes, *args.added_args)
+    HyperParamsClass = TRAIN_MODEL_CHOICES[args.model]
+    hyp_params = HyperParamsClass(num_classes, *args.added_args)
 
     # make results dir path
     os.makedirs(args.results_dir, exist_ok=True)

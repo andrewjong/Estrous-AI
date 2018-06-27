@@ -3,17 +3,22 @@ import os
 
 import torch
 
-import torchvision
 from tqdm import tqdm
 import utils
 from src.cnn_resnet_transfer import ResNet
+from src.model_choices import TRAIN_MODEL_CHOICES
 
 parser = argparse.ArgumentParser(
     description="Evaluate a model on the test set. Only do this once you're \
     sure!")
-
-# parser.add_argument("model_class")
-parser.add_argument("model_file",
+parser.add_argument("model",
+                    choices=list(TRAIN_MODEL_CHOICES),
+                    help=f'Choose which model to use.')
+parser.add_argument("-a", "--added_args", nargs="+",
+                    default=[],
+                    help="Pass addiitional arguments for instantiating the \
+                    chosen model.")
+parser.add_argument("-m", "--model_file",
                     help='File from which to load model parameters, typically \
                     ends with a ".pth" extension.')
 parser.add_argument("-d", "--data_dir",
