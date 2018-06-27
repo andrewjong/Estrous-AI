@@ -30,7 +30,7 @@ data_transforms = {
 data_transforms['test'] = data_transforms['val']
 
 
-def get_datasets_and_loaders(data_dir, *subsets):
+def get_datasets_and_loaders(data_dir, *subsets, include_paths=False):
     """Get dataset and DataLoader for a given data root directory.
 
     Arguments:
@@ -42,7 +42,9 @@ def get_datasets_and_loaders(data_dir, *subsets):
         [type] -- [description]
     """
 
-    image_datasets = {subset: datasets.ImageFolder(
+    im_folder_class = ImageFolderWithPaths if include_paths \
+        else datasets.ImageFolder
+    image_datasets = {subset: im_folder_class(
         os.path.join(data_dir, subset), data_transforms[subset])
         for subset in subsets}
 
@@ -52,6 +54,11 @@ def get_datasets_and_loaders(data_dir, *subsets):
 
     return image_datasets, dataloaders
 
+
+class ImageFolderWithPaths(datasets.ImageFolder):
+    def __getitem__(self, index):
+        return super(
+            ImageFolderWithPaths, self).__getitem__(index), self.imgs[index][0]
 
 # def show_first_inputs():
 #     inputs, classes = next(iter(dataloaders["train"]))

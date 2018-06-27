@@ -29,37 +29,39 @@ parser.add_argument("-r", "--results_dir",
                     help='Directory to store evaluation results \
                     (default: "results"). If the directory path does not \
                     exist, the program will create it.')
-
 args = parser.parse_args()
 
 
 def main():
+    # get our data
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        args.data_dir, args.subset)
+        args.data_dir, args.subset, include_paths=True)
     dataset = datasets[args.subset]
     dataloader = dataloaders[args.subset]
 
-    model = ResNet(num_classes=4).model
+    HyperParamsClass = TRAIN_MODEL_CHOICES[args.model]
+    model = HyperParamsClass(len(dataset.classes), *args.added_args).model
     model.load_state_dict(torch.load(args.model_file))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
     model.eval()
 
-    header = ','.join(dataset.classes + ['predicted', 'label'])
-    print(header)
+    header = ','.join(['image_name'] + dataset.classes +
+                      ['predicted', 'label'])
+    # print(header)
     results_file = make_results_file(header)
+    print("Writing results to", results_file)
 
     loss = 0.0
     corrects = 0
 
-    with tqdm(desc="Eval", total=len(dataset)):
+    with tqdm(desc="Eval", total=len(dataset)) as pbar:
         # for all the inputs, make a prediction
-        for inputs, labels in dataloader:
+        for (inputs, labels), paths in dataloader:
             inputs = inputs.to(device)
             labels = labels.to(device)
 
             with torch.set_grad_enabled(False):
-                print('=' * 50)
                 # make prediction by passing forward through the model
                 raw_outputs = model(inputs)
                 outputs = torch.nn.Softmax(dim=1)(raw_outputs)
@@ -68,18 +70,21 @@ def main():
                     # keep only the first 4 decimals
                     values_as_strings = [f'{value:.4f}'
                                          for value in row.numpy()]
+                    image_name = os.path.basename(paths[i])
                     # get the actual class names instead of just indices
                     predicted_class_name = dataset.classes[predictions[i]]
                     label_class_name = dataset.classes[labels[i]]
                     # add the class names to the array
+                    values_as_strings.insert(0, image_name)
                     values_as_strings.extend(
                         [predicted_class_name, label_class_name])
                     # make the array a single csv string
                     csv_line = ','.join(values_as_strings)
-                    print(csv_line)
                     # write the file
                     with open(results_file, 'a') as f:
                         f.write(csv_line + '\n')
+
+            pbar.update(inputs.size(0))
 
 
 def make_results_file(header):
@@ -92,9 +97,10 @@ def make_results_file(header):
     """
     os.makedirs(args.results_dir, exist_ok=True)
     # get just the basename with no extension
-    _, model_name = os.path.splitext(os.path.basename(args.model_file))
-    results_filepath = os.path.join(args.results_dir, model_name + "_eval.csv")
-
+    model_name, _ = os.path.splitext(os.path.basename(args.model_file))
+    results_filepath = os.path.join(args.results_dir,
+                                    "_".join([model_name, args.subset,
+                                              "eval.csv"]))
     # write the csv header
     with open(results_filepath, 'w') as f:
         # TODO add image file name as first column
