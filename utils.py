@@ -29,25 +29,29 @@ data_transforms = {
 # set test and val to same transform
 data_transforms['test'] = data_transforms['val']
 
-
 def get_datasets_and_loaders(data_dir, *subsets, include_paths=False):
-    """Get dataset and DataLoader for a given data root directory.
-
+    """Get dataset and DataLoader for a given data root directory
     Arguments:
         data_dir {string} -- path of directory
         subsets {string(s)} -- "train", "val", or "test"; pass in multiple if 
             desired.
-
+    
+    Keyword Arguments:
+        include_paths {bool} -- Whether to include file paths in the returned dataset (default: {False})
+    
     Returns:
-        [type] -- [description]
+        tuple -- datasets, dataloaders
     """
 
+    # the dataset we use is either the normal ImageFolder, or our custom
+    #   ImageFolder
     im_folder_class = ImageFolderWithPaths if include_paths \
         else datasets.ImageFolder
+    # get the datasets for each given subset, e.g. train, val, test
     image_datasets = {subset: im_folder_class(
         os.path.join(data_dir, subset), data_transforms[subset])
         for subset in subsets}
-
+    # make dataloaders for each of the datasets above
     dataloaders = {subset: torch.utils.data.DataLoader(
         image_datasets[subset], batch_size=4, shuffle=True, num_workers=0)
         for subset in subsets}
@@ -56,9 +60,19 @@ def get_datasets_and_loaders(data_dir, *subsets, include_paths=False):
 
 
 class ImageFolderWithPaths(datasets.ImageFolder):
+    """Custom Dataset that includes image paths. Extends
+    torchvision.datasets.ImageFolder
+    """
+
+    # override the __getitem__ method that dataloader calls
     def __getitem__(self, index):
-        return super(
-            ImageFolderWithPaths, self).__getitem__(index), self.imgs[index][0]
+        # this is what ImageFolder normally returns 
+        original_tuple = super(ImageFolderWithPaths, self).__getitem__(index)
+        # the image file path
+        path = self.imgs[index][0]
+        # make a new tuple that includes original and the path
+        tuple_with_path = (original_tuple + (path,))
+        return tuple_with_path
 
 # def show_first_inputs():
 #     inputs, classes = next(iter(dataloaders["train"]))

@@ -62,7 +62,7 @@ def main():
 
     with tqdm(desc="Eval", total=len(dataset)) as pbar:
         # for all the inputs, make a prediction
-        for (inputs, labels), paths in dataloader:
+        for inputs, labels, paths in dataloader:
             inputs = inputs.to(device)
             labels = labels.to(device)
 
