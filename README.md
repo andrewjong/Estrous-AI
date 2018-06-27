@@ -17,4 +17,4 @@ Contact Josh or Andrew for the data. Once the data is obtained, use the `data_cl
 
 # Train a Model
 The code for a ResNet18 transfer-learning by finetuning model currently exists in the repository. You can train it with the following:
-```python train.py resnet18_transfer```.
+```python train.py resnet_transfer```.
