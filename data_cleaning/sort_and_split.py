@@ -99,7 +99,7 @@ with tqdm(total=len(labels_df), unit="sort") as pbar:
                 f_name = animal_label + "_" + date_label
                 # includes subdirectories in search with "**"
                 search_glob = os.path.join(
-                    args.from_dir, "**", f_name + "*.tif")
+                    args.from_dir, "**", f_name + "*")
                 # match each found file to the appropriate phase label
                 for filepath in glob.glob(search_glob, recursive=True):
                     # make sure the filepath does not have any of the exclude words
