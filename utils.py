@@ -29,16 +29,17 @@ data_transforms = {
 # set test and val to same transform
 data_transforms['test'] = data_transforms['val']
 
+
 def get_datasets_and_loaders(data_dir, *subsets, include_paths=False):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
         data_dir {string} -- path of directory
         subsets {string(s)} -- "train", "val", or "test"; pass in multiple if 
             desired.
-    
+
     Keyword Arguments:
         include_paths {bool} -- Whether to include file paths in the returned dataset (default: {False})
-    
+
     Returns:
         tuple -- datasets, dataloaders
     """
@@ -52,8 +53,10 @@ def get_datasets_and_loaders(data_dir, *subsets, include_paths=False):
         os.path.join(data_dir, subset), data_transforms[subset])
         for subset in subsets}
     # make dataloaders for each of the datasets above
+    num_gpus = torch.cuda.device_count()
     dataloaders = {subset: torch.utils.data.DataLoader(
-        image_datasets[subset], batch_size=4, shuffle=True, num_workers=0)
+        image_datasets[subset], batch_size=4, shuffle=True,
+        num_workers=4 * num_gpus)
         for subset in subsets}
 
     return image_datasets, dataloaders
@@ -66,7 +69,7 @@ class ImageFolderWithPaths(datasets.ImageFolder):
 
     # override the __getitem__ method that dataloader calls
     def __getitem__(self, index):
-        # this is what ImageFolder normally returns 
+        # this is what ImageFolder normally returns
         original_tuple = super(ImageFolderWithPaths, self).__getitem__(index)
         # the image file path
         path = self.imgs[index][0]
