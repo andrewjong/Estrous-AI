@@ -1,16 +1,51 @@
 import os
+import random
 
+import numpy as np
 import torch
-from torchvision import datasets, models, transforms
+from matplotlib import pyplot as plt
+from PIL import Image
+
+import cv2
+from torchvision import datasets, transforms
 
 # class_names = image_datasets['train'].classes
 
 # Normalization parameters
-means = [0.485, 0.456, 0.406]
-stds = [0.229, 0.224, 0.225]
+means = (0.485, 0.456, 0.406)
+stds = (0.229, 0.224, 0.225)
+
+
+class AdaptiveThreshold(object):
+    """Applies adaptive thresholding from OpenCV library. """
+
+    def __init__(self, adaptiveMethod=cv2.ADAPTIVE_THRESH_MEAN_C,
+                 block_size=25, constant=2):
+        """Initializer. See cv2.adaptiveThreshold method for args
+        
+        Keyword Arguments:
+            adaptiveMethod {[type]} -- [description] (default: {cv2.ADAPTIVE_THRESH_MEAN_C})
+            block_size {int} -- [description] (default: {25})
+            constant {int} -- [description] (default: {2})
+        """
+        self.adaptiveMethod = adaptiveMethod
+        self.block_size = block_size
+        self.constant = constant
+
+    def __call__(self, img):
+        img = img.convert('L')
+        np_img = np.array(img, dtype=np.uint8)
+        np_img = cv2.adaptiveThreshold(np_img, 255, self.adaptiveMethod,
+                                       cv2.THRESH_BINARY, self.block_size,
+                                       self.constant)
+        np_img = np.dstack([np_img, np_img, np_img])
+        img = Image.fromarray(np_img, 'RGB')
+        return img
+
 
 data_transforms = {
     'train': transforms.Compose([
+        AdaptiveThreshold(),
         transforms.RandomResizedCrop(224),
         # data augmentation, randomly flip and vertically flip across epochs
         transforms.RandomHorizontalFlip(),
@@ -21,6 +56,7 @@ data_transforms = {
         transforms.Normalize(means, stds)
     ]),
     'val': transforms.Compose([
+        AdaptiveThreshold(),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(means, stds)
@@ -34,11 +70,12 @@ def get_datasets_and_loaders(data_dir, *subsets, include_paths=False):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
         data_dir {string} -- path of directory
-        subsets {string(s)} -- "train", "val", or "test"; pass in multiple if 
-            desired.
+        subsets {string(s)} -- "train", "val", or "test"; pass in multiple if
+                                desired.
 
     Keyword Arguments:
-        include_paths {bool} -- Whether to include file paths in the returned dataset (default: {False})
+        include_paths {bool} -- Whether to include file paths in the returned
+                                dataset (default: {False})
 
     Returns:
         tuple -- datasets, dataloaders
@@ -56,7 +93,7 @@ def get_datasets_and_loaders(data_dir, *subsets, include_paths=False):
     num_gpus = torch.cuda.device_count()
     dataloaders = {subset: torch.utils.data.DataLoader(
         image_datasets[subset], batch_size=4, shuffle=True,
-        num_workers=4 * num_gpus)
+        num_workers=num_gpus * 4)
         for subset in subsets}
 
     return image_datasets, dataloaders
@@ -76,6 +113,22 @@ class ImageFolderWithPaths(datasets.ImageFolder):
         # make a new tuple that includes original and the path
         tuple_with_path = (original_tuple + (path,))
         return tuple_with_path
+
+
+if __name__ == '__main__':
+    threshold_tsfm_1 = AdaptiveThreshold(cv2.ADAPTIVE_THRESH_MEAN_C, 25)
+    threshold_tsfm_2 = AdaptiveThreshold(cv2.ADAPTIVE_THRESH_GAUSSIAN_C)
+    dataset = datasets.ImageFolder('data/remove_art/train')
+    sample, _ = dataset[random.randrange(0, len(dataset))]
+    transformed_sample_1 = threshold_tsfm_1(sample)
+    transformed_sample_2 = threshold_tsfm_2(sample)
+
+    fig = plt.figure()
+    a = fig.add_subplot(1, 2, 1)
+    plt.imshow(sample)
+    b = fig.add_subplot(1, 2, 2)
+    plt.imshow(transformed_sample_1)
+    plt.show()
 
 # def show_first_inputs():
 #     inputs, classes = next(iter(dataloaders["train"]))
