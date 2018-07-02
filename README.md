@@ -13,7 +13,7 @@ From the project root, run:
 # Getting the Data
 Contact Josh or Andrew for the data. Once the data is obtained, use the `data_cleaning/sort_and_split.py` to split the data into train/validation/test sets organized by label.
 
-```python sort_and_split.py labels.csv -s 70 15 15```
+```python sort_and_split.py labels.csv -d [path/to/dataset]```
 
 # Train a Model
 The code for a ResNet18 transfer-learning by finetuning model currently exists in the repository. You can train it with the following:
