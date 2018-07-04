@@ -1,22 +1,24 @@
-DOC = """ This script moves images into separate subdirectories (folders) for train/validation/test sets.
+DOC = """ This script moves images into separate subdirectories (folders) for \
+train/validation/test sets. \
 The images are additionally separated into folders by phase label.
 
-This formats the data for PyTorch's torchvision.datasets.ImageFolder loader function:
+This formats the data for PyTorch's torchvision.datasets.ImageFolder loader \
+function:
 https://pytorch.org/docs/stable/torchvision/datasets.html#imagefolder.
 
-Be sure to delete existing files before rerunning the script!"
+Be sure to delete existing files before rerunning the script!
 """
 """
-The folder structure will look like this: 
+The folder structure will look like this:
     train/
         proestrus/
         estrus/
         metestrus/
         diestrus/
     val/
-        ... 
-    test/ 
-        ... 
+        ...
+    test/
+        ...
 """
 import argparse
 import glob
@@ -35,12 +37,16 @@ parser = argparse.ArgumentParser(description=DOC)
 parser.add_argument(
     "labels_file", help="CSV file containing the labels for each image")
 parser.add_argument(
-    "from_dir", help="Root directory of where the unsorted images currently are")
-parser.add_argument("to_dir", nargs='?', default=os.path.join("..", "data", "lavage"),
-                    help="OPTIONAL. Root directory of where to put the sorted images (default: '../data/lavage/')")
+    "from_dir",
+    help="Root directory of where the unsorted images currently are")
+parser.add_argument("to_dir", nargs='?',
+                    default=os.path.join("..", "data", "lavage"),
+                    help="OPTIONAL. Root directory of where to put the sorted \
+                    images (default: '../data/lavage/')")
 parser.add_argument("-s", "--split", nargs=3, type=int, default=[70, 15, 15],
-                    help="Split percentages for train, validation, and test sets respectively. E.g. '70 15 15'. \
-                    Numbers must add up to 100! (default: 70 train, 15 val, 15 test).")
+                    help="Split percentages for train, validation, and test \
+                    sets respectively. E.g. '70 15 15'. Numbers must add up \
+                    to 100! (default: 70 train, 15 val, 15 test).")
 parser.add_argument("-g", "--grouped_classes", nargs='+',
                     type=list, default=['1', '2', '3', '4'],
                     help='Group phases into classes by phase number. The ' +
@@ -49,9 +55,10 @@ parser.add_argument("-g", "--grouped_classes", nargs='+',
                     'in "123 4" would group proestrus-estrus-metestrus as ' +
                     'one prediction class and diestrus as another.')
 parser.add_argument("-e", "--exclude", nargs='+',
-                    help='Exclude files with the specified strings in their file paths. \
-                    E.g. "40x" would ignore all images with file paths containing "40x". \
-                    Exclude strings are case insensitive.')
+                    help='Exclude files with the specified strings in their \
+                    file paths. E.g. "40x" would ignore all images with file \
+                    paths containing "40x". Exclude strings are case \
+                    insensitive.')
 args = parser.parse_args()
 # make sure split is valid, i.e. sums to 100
 split_sum = sum(args.split)
@@ -59,7 +66,8 @@ assert split_sum == 100, "Split percentages must sum to 100. Sum=" + \
     str(split_sum) + "."
 
 
-# map phase numbers to the correct phase label. this is for sorting the excel spreadsheet
+# map phase numbers to the correct phase label. this is for sorting the excel
+# spreadsheet
 PHASE_NUM_TO_LABEL = {
     '1': "proestrus",
     '2': "estrus",
@@ -86,7 +94,8 @@ with tqdm(total=len(labels_df), unit="sort") as pbar:
         animal_label = row.Index
 
         # iterate over each row's elements
-        # (we iterate using the index because the "row" returned by itertuples doesn't store the full column name. iterating by index does)
+        # (we iterate using the index because the "row" returned by itertuples
+        # doesn't store the full column name. iterating by index does)
         for i in range(1, len(labels_df.columns)):
             # get the value in the cell
             phase_num = row[i]
@@ -128,9 +137,11 @@ with tqdm(total=total_files_to_copy, unit="copy") as pbar:
         # aggregate the labels for this group
         group_labels_to_files = {k: labels_to_files[k] for k in group_labels}
 
-        # work with each label separately, to ensure proportionate distribution of files
+        # work with each label separately, to ensure proportionate
+        # distribution of files
         for label, files in group_labels_to_files.items():
-            # shuffle for fair training. use a seed on Random for consistency in shuffling
+            # shuffle for fair training. use a seed on Random for consistency
+            # in shuffling
             Random(42).shuffle(files)
             total_files = len(files)
 
