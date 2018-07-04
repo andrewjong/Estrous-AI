@@ -50,7 +50,8 @@ parser.add_argument("-g", "--grouped_classes", nargs='+',
                     'one prediction class and diestrus as another.')
 parser.add_argument("-e", "--exclude", nargs='+',
                     help='Exclude files with the specified strings in their file paths. \
-                    E.g. "40x" would ignore all images with file paths containing "40x"')
+                    E.g. "40x" would ignore all images with file paths containing "40x". \
+                    Exclude strings are case insensitive.')
 args = parser.parse_args()
 # make sure split is valid, i.e. sums to 100
 split_sum = sum(args.split)
@@ -102,8 +103,11 @@ with tqdm(total=len(labels_df), unit="sort") as pbar:
                     args.from_dir, "**", f_name + "*")
                 # match each found file to the appropriate phase label
                 for filepath in glob.glob(search_glob, recursive=True):
-                    # make sure the filepath does not have any of the exclude words
-                    if not args.exclude or all(exclusion not in filepath for exclusion in args.exclude):
+                    # make sure the filepath does not have any of the exclude
+                    # words
+                    if not args.exclude or all(exclusion.lower() not in
+                                               filepath.lower() for exclusion
+                                               in args.exclude):
                         labels_to_files[phase_label].append(filepath)
 
         pbar.update(1)
