@@ -27,7 +27,14 @@ def main():
 
     # instantiate the model object
     HyperParamsClass = TRAIN_MODEL_CHOICES[args.model]
-    hparams = HyperParamsClass(num_classes, *args.added_args)
+    try:
+        hparams = HyperParamsClass(num_classes, *args.added_args)
+    except TypeError as e:
+        print("Caught TypeError when instantiating model class. Make sure " +
+              "all required model arguments are passed, in order, using the " +
+              "-a flag.\n")
+        print(e)
+        exit(1)
 
     # make results dir path
     try:
@@ -38,7 +45,7 @@ def main():
         if can_continue and can_continue.lower()[0] == "y":
             os.makedirs(outdir, exist_ok=True)
         else:
-            quit()
+            exit()
     print(f'Writing results to "{outdir}"')
     write_meta()
 

@@ -13,7 +13,7 @@ class ResNet:
 
     available_sizes = (18, 34, 50, 101, 152)
 
-    def __init__(self, num_classes, num_layers="18", finetune_or_fixed="finetune"):
+    def __init__(self, num_classes, num_layers, finetune_or_fixed):
         """ Initialize the class
 
         Arguments:
