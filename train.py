@@ -9,6 +9,7 @@ from tqdm import tqdm
 import utils
 from src.model_choices import TRAIN_MODEL_CHOICES
 
+EXPERIMENTS_ROOT = "experiments"
 # TODO: Convert these arguments into a configuration file later
 parser = argparse.ArgumentParser(
     description="Train an estrous cycle cell-phase classifer model.")
@@ -16,31 +17,34 @@ parser = argparse.ArgumentParser(
 parser.add_argument("model",
                     choices=list(TRAIN_MODEL_CHOICES),
                     help=f'Choose which model to use.')
+parser.add_argument("-e", "--experiment_name",
+                    default='unnamed_experiment',
+                    help='Name of the experiment. This becomes the \
+                    subdirectory that the experiment output is stored in, \
+                    i.e. "experiments/my_experiment/" (default: \
+                    "unnamed_experiment").')
 parser.add_argument("-d", "--data_dir",
-                    default="data/lavage",
                     help='Root directory of dataset to use, with classes \
-                    separated into separate subdirectoires \
-                    (default: "data/lavage").')
-parser.add_argument("-e", "--epochs", type=int, metavar="N",
+                    separated into separate subdirectories.')
+parser.add_argument("-n", "--num_epochs", type=int, metavar="N",
                     default=50,
                     help='Number of epochs to train for (default: 50).')
-parser.add_argument("-s", "--save_dir",
-                    default="models",
-                    help='File path or directory to save model parameters \
-                    (default directory: "models"). If the passed argument is \
-                    a directory, the program will generate a file name. \
-                    If the path does not exist, the program will create it.')
-parser.add_argument("-r", "--results_dir",
-                    default="results",
-                    help='Directory to store train results \
-                    (default: "results"). If the directory path does not \
-                    exist, the program will create it.')
 parser.add_argument("-a", "--added_args", nargs="+",
                     default=[],
                     help="Pass addiitional arguments for instantiating the \
                     chosen model.")
 
 args = parser.parse_args()
+
+# Make the output directory for the experiment
+model_name = "-".join([args.model] + args.added_args)
+# get rid of the extra slash if the user put one
+if args.data_dir[-1] == "/" or args.data_dir[-1] == "\\":
+    args.data_dir = args.data_dir[:-1]
+dataset_name = os.path.basename(args.data_dir)
+
+outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name,
+                      dataset_name, model_name)
 
 
 def main():
@@ -54,20 +58,28 @@ def main():
 
     # instantiate the model object
     HyperParamsClass = TRAIN_MODEL_CHOICES[args.model]
-    hyp_params = HyperParamsClass(num_classes, *args.added_args)
+    hparams = HyperParamsClass(num_classes, *args.added_args)
 
     # make results dir path
-    os.makedirs(args.results_dir, exist_ok=True)
+    try:
+        os.makedirs(outdir)
+    except OSError:
+        can_continue = input(f'The directory "{outdir}" already exists. ' +
+                             "Do you wish to continue anyway? (y/N): ")
+        if can_continue and can_continue.lower()[0] == "y":
+            os.makedirs(outdir, exist_ok=True)
+        else:
+            quit()
+    print(f'Writing results to "{outdir}"')
+
     # train
     trained_model = train_model(
-        hyp_params.model, hyp_params.criterion, hyp_params.optimizer,
-        hyp_params.lr_scheduler, args.epochs,
+        hparams.model, hparams.criterion, hparams.optimizer,
+        hparams.lr_scheduler, args.num_epochs,
         dataloaders, dataset_sizes)
 
     # Save the model
-    os.makedirs(args.save_dir, exist_ok=True)
-    save_fname = make_model_fname() + ".pth"
-    save_path = os.path.join(args.save_dir, save_fname)
+    save_path = os.path.join(outdir, "model.pth")
     torch.save(trained_model.state_dict(), save_path)
 
 
@@ -105,7 +117,8 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
         # train and evaluate on validation for each epoch
         for phase in ('train', 'val'):
             if phase == 'train':
-                scheduler.step()  # update the scheduler only for train, once per epoch
+                # update the scheduler only for train, once per epoch
+                scheduler.step()
                 model.train()  # set model to train mode
             else:
                 model.eval()  # set model to evaluation mode
@@ -176,19 +189,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
     return model
 
 
-def make_model_fname():
-    """Generate a file name that includes the dataset name, model name,
-    plus any additional args passed to instantiate the model object,
-    separated by underscores.
-
-    Returns:
-        string -- formatted as "[model]_[additional_args]"
-    """
-
-    dataset_name = os.path.basename(args.data_dir)
-    return "_".join([dataset_name, args.model] + args.added_args)
-
-
 def make_results_file():
     """Creates a file (overwrites if existing) for recording train results
     using the results path specified in parse_args.
@@ -197,9 +197,7 @@ def make_results_file():
     Returns:
         string -- path of the created file
     """
-
-    results_filepath = os.path.join(
-        args.results_dir, make_model_fname() + "_train.csv")
+    results_filepath = os.path.join(outdir, "train.csv")
 
     with open(results_filepath, 'w') as f:
         f.write("epoch,loss,train_acc,val_acc\n")
