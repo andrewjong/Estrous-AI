@@ -1,5 +1,6 @@
 import argparse
 import copy
+import json
 import os
 import time
 
@@ -10,41 +11,9 @@ import utils
 from src.model_choices import TRAIN_MODEL_CHOICES
 
 EXPERIMENTS_ROOT = "experiments"
-# TODO: Convert these arguments into a configuration file later
-parser = argparse.ArgumentParser(
-    description="Train an estrous cycle cell-phase classifer model.")
-
-parser.add_argument("model",
-                    choices=list(TRAIN_MODEL_CHOICES),
-                    help=f'Choose which model to use.')
-parser.add_argument("-e", "--experiment_name",
-                    default='unnamed_experiment',
-                    help='Name of the experiment. This becomes the \
-                    subdirectory that the experiment output is stored in, \
-                    i.e. "experiments/my_experiment/" (default: \
-                    "unnamed_experiment").')
-parser.add_argument("-d", "--data_dir",
-                    help='Root directory of dataset to use, with classes \
-                    separated into separate subdirectories.')
-parser.add_argument("-n", "--num_epochs", type=int, metavar="N",
-                    default=50,
-                    help='Number of epochs to train for (default: 50).')
-parser.add_argument("-a", "--added_args", nargs="+",
-                    default=[],
-                    help="Pass addiitional arguments for instantiating the \
-                    chosen model.")
-
-args = parser.parse_args()
-
-# Make the output directory for the experiment
-model_name = "-".join([args.model] + args.added_args)
-# get rid of the extra slash if the user put one
-if args.data_dir[-1] == "/" or args.data_dir[-1] == "\\":
-    args.data_dir = args.data_dir[:-1]
-dataset_name = os.path.basename(args.data_dir)
-
-outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name,
-                      dataset_name, model_name)
+META_FNAME = "meta.json"
+TRAIN_RESULTS_FNAME = "train.csv"
+MODEL_PARAMS_FNAME = "model.pth"
 
 
 def main():
@@ -71,6 +40,7 @@ def main():
         else:
             quit()
     print(f'Writing results to "{outdir}"')
+    write_meta()
 
     # train
     trained_model = train_model(
@@ -79,8 +49,24 @@ def main():
         dataloaders, dataset_sizes)
 
     # Save the model
-    save_path = os.path.join(outdir, "model.pth")
+    save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
     torch.save(trained_model.state_dict(), save_path)
+
+
+def write_meta():
+    meta_info = {
+        "experiment_name": args.experiment_name,
+        "data_dir": args.data_dir,
+        "model": args.model,
+        "added_args": args.added_args,
+        "num_epochs": args.num_epochs
+    }
+    meta_out = os.path.join(outdir, META_FNAME)
+    with open(meta_out, 'w') as out:
+        json.dump(meta_info, out, indent=4)
+    # TODO: check to see if training finished or not. if it didn't, record
+    # where to pick up to finish training
+    # TODO: Include best validation, train, and loss
 
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs,
@@ -197,7 +183,7 @@ def make_results_file():
     Returns:
         string -- path of the created file
     """
-    results_filepath = os.path.join(outdir, "train.csv")
+    results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
 
     with open(results_filepath, 'w') as f:
         f.write("epoch,loss,train_acc,val_acc\n")
@@ -205,4 +191,42 @@ def make_results_file():
 
 
 if __name__ == '__main__':
+    # TODO: Convert these arguments into a configuration file later
+    parser = argparse.ArgumentParser(
+        description="Train an estrous cycle cell-phase classifer model.")
+
+    parser.add_argument("model",
+                        choices=list(TRAIN_MODEL_CHOICES),
+                        help=f'Choose which model to use.')
+    parser.add_argument("-e", "--experiment_name",
+                        default='unnamed_experiment',
+                        help='Name of the experiment. This becomes the \
+                        subdirectory that the experiment output is stored in, \
+                        i.e. "experiments/my_experiment/" (default: \
+                        "unnamed_experiment").')
+    parser.add_argument("-d", "--data_dir",
+                        help='Root directory of dataset to use, with classes \
+                        separated into separate subdirectories.')
+    parser.add_argument("-n", "--num_epochs", type=int, metavar="N",
+                        default=50,
+                        help='Number of epochs to train for (default: 50).')
+    parser.add_argument("-a", "--added_args", nargs="+",
+                        default=[],
+                        help="Pass addiitional arguments for instantiating the \
+                        chosen model.")
+
+    global args
+    args = parser.parse_args()
+
+    # Make the output directory for the experiment
+    model_name = "-".join([args.model] + args.added_args)
+    # get rid of the extra slash if the user put one
+    if args.data_dir[-1] == "/" or args.data_dir[-1] == "\\":
+        args.data_dir = args.data_dir[:-1]
+    dataset_name = os.path.basename(args.data_dir)
+
+    global outdir
+    outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name,
+                          dataset_name, model_name)
+
     main()
