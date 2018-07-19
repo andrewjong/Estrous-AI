@@ -3,7 +3,7 @@ import torch.optim as optim
 
 import torchvision.models
 
-from .base_class import Trainable
+from .trainable import Trainable
 
 
 class ResNet(Trainable):
