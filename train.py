@@ -17,7 +17,7 @@ MODEL_PARAMS_FNAME = "model.pth"
 
 
 def main():
-    # obtain train and validation datasets and dataloaders
+    # Obtain train and validation datasets and dataloaders
     datasets, dataloaders = utils.get_datasets_and_loaders(
         args.data_dir, "train", "val")
     dataset_sizes = {subset: len(datasets[subset])
@@ -25,7 +25,7 @@ def main():
 
     num_classes = len(datasets["train"].classes)
 
-    # instantiate the model object
+    # Instantiate the model object
     HyperParamsClass = TRAIN_MODEL_CHOICES[args.model]
     try:
         hparams = HyperParamsClass(num_classes, *args.added_args)
@@ -36,7 +36,7 @@ def main():
         print(e)
         exit(1)
 
-    # make results dir path
+    # Make results dir path
     try:
         os.makedirs(outdir)
     except OSError:
@@ -47,26 +47,39 @@ def main():
         else:
             exit()
     print(f'Writing results to "{outdir}"')
-    write_meta()
 
-    # train
-    trained_model = train_model(
+    # Train
+    trained_model, best_val_acc, train_acc, train_loss = train_model(
         hparams.model, hparams.criterion, hparams.optimizer,
         hparams.lr_scheduler, args.num_epochs,
         dataloaders, dataset_sizes)
+
+    # Write the meta file containing train data
+    write_meta(best_val_acc, train_acc, train_loss)
 
     # Save the model
     save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
     torch.save(trained_model.state_dict(), save_path)
 
 
-def write_meta():
+def write_meta(best_val_acc, associated_train_acc, associated_train_loss):
+    """Writes meta data about the train
+
+    Arguments:
+        best_val_acc {[type]} -- [description]
+        associated_train_acc {[type]} -- [description]
+        associated_train_loss {[type]} -- [description]
+    """
+
     meta_info = {
         "experiment_name": args.experiment_name,
         "data_dir": args.data_dir,
         "model": args.model,
         "added_args": args.added_args,
-        "num_epochs": args.num_epochs
+        "num_epochs": args.num_epochs,
+        "best_val_accuracy": best_val_acc,
+        "train_accuracy": associated_train_acc,
+        "train_loss": associated_train_loss
     }
     meta_out = os.path.join(outdir, META_FNAME)
     with open(meta_out, 'w') as out:
@@ -82,13 +95,19 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
 
     Arguments:
         model {[type]} -- the model to train
-        criterion {[type]} -- a criterion (loss function) for the optimizer
-        optimizer {[type]} -- the optimizer to use such as SGD, Adam, etc
-        scheduler {[type]} -- update learning rate based on completed epochs
+        criterion {torch.nn._Loss} -- a criterion (loss function) 
+        optimizer {torch.optim.Optimizer} -- the optimizer to use such as, SGD
+        scheduler {torch.optim.lr_scheduler} -- schedule learning rate
+        num_epochs {int} -- [description]
+        dataloaders {DataLoader, DataLoader)} -- tuple containing dataloader
+            for train, and dataloader for validation
+        dataset_sizes {(int, int)} -- tuple, sizes for train and val datasets
 
-    Keyword Arguments:
-        num_epochs {int} -- number of epochs to train for (default: {50})
+    Returns:
+        [type] -- [description]
     """
+
+    # Setup
     # use gpu if available
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
@@ -98,16 +117,19 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
 
     # setup our best results to return later
     best_model_weights = copy.deepcopy(model.state_dict())
-    best_accuracy = 0.0
+    best_val_acc = 0.0
+    associated_train_acc = None
+    associated_train_loss = None
 
     start_time = time.time()  # to keep track of elapsed time
 
-    # train
+    # Train
+    # summary: for each epoch, train on the train set, then get
     for epoch in range(num_epochs):
         print(f'Epoch {epoch + 1}/{num_epochs}')
         print("-" * 10)
 
-        # train and evaluate on validation for each epoch
+        # during the epoch, run both train and evaluation
         for phase in ('train', 'val'):
             if phase == 'train':
                 # update the scheduler only for train, once per epoch
@@ -155,31 +177,39 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs,
             epoch_loss = running_loss / dataset_sizes[phase]
             # accuracy is also the average of the corrects
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
+            # print results for this epoch phase
             print(f'{phase.capitalize()} ' +
                   f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
 
             if phase == 'train':
+                epoch_train_acc = epoch_acc
+                epoch_train_loss = epoch_loss
                 # write train loss and accuracy
                 with open(results_filepath, 'a') as f:
                     f.write(f'{epoch + 1},{epoch_loss},{epoch_acc},')
-            if phase == 'val':
+            elif phase == 'val':
                 # write validation accuracy
                 with open(results_filepath, 'a') as f:
                     f.write(f'{epoch_acc}\n')
                 # deep copy the model if we perform better
-                if epoch_acc > best_accuracy:
-                    best_accuracy = epoch_acc
+                if epoch_acc > best_val_acc:
+                    best_val_acc = epoch_acc
+                    associated_train_acc = epoch_train_acc
+                    associated_train_loss = epoch_train_loss
                     best_model_weights = copy.deepcopy(model.state_dict())
 
-        print()
+        print()  # spacer between epochs
 
     time_elapsed = time.time() - start_time
     print(f'Training completed in {int(time_elapsed // 60)}m ' +
           f'{int(time_elapsed % 60)}s')
-    print(f'Best validation accuracy: {best_accuracy:.4f}')
+    print(f'Best validation accuracy: {best_val_acc:.4f}')
+    print(f'Associated train accuracy: {associated_train_acc:.4f}')
+    print(f'Associated train loss: {associated_train_loss:.4f}')
     # load best model weights and return the model
     model.load_state_dict(best_model_weights)
-    return model
+    return (model, float(best_val_acc),
+            float(associated_train_acc), float(associated_train_loss))
 
 
 def make_results_file():
