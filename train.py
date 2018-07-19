@@ -1,11 +1,8 @@
 import argparse
-import copy
 import json
 import os
-import time
 
 import torch
-from tqdm import tqdm
 
 import utils
 from src.model_choices import TRAIN_MODEL_CHOICES
@@ -26,9 +23,9 @@ def main():
     num_classes = len(datasets["train"].classes)
 
     # Instantiate the model object
-    HyperParamsClass = TRAIN_MODEL_CHOICES[args.model]
+    TrainableClass = TRAIN_MODEL_CHOICES[args.model]
     try:
-        hparams = HyperParamsClass(num_classes, *args.added_args)
+        trainable = TrainableClass(num_classes, *args.added_args)
     except TypeError as e:
         print("Caught TypeError when instantiating model class. Make sure " +
               "all required model arguments are passed, in order, using the " +
@@ -36,7 +33,7 @@ def main():
         print(e)
         exit(1)
 
-    # Make results dir path
+    # Make results dir path. Check if it already exists.
     try:
         os.makedirs(outdir)
     except OSError:
@@ -48,14 +45,15 @@ def main():
             exit()
     print(f'Writing results to "{outdir}"')
 
+    # make the results file
+    results_filepath = make_results_file()
     # Train
-    trained_model, best_val_acc, train_acc, train_loss = train_model(
-        hparams.model, hparams.criterion, hparams.optimizer,
-        hparams.lr_scheduler, args.num_epochs,
-        dataloaders, dataset_sizes)
-
+    trained_model = trainable.train(dataloaders, dataset_sizes,
+                                    args.num_epochs, results_filepath)
     # Write the meta file containing train data
-    write_meta(best_val_acc, train_acc, train_loss)
+    write_meta(trainable.best_val_accuracy,
+               trainable.associated_train_accuracy,
+               trainable.associated_train_loss)
 
     # Save the model
     save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
@@ -86,130 +84,6 @@ def write_meta(best_val_acc, associated_train_acc, associated_train_loss):
         json.dump(meta_info, out, indent=4)
     # TODO: check to see if training finished or not. if it didn't, record
     # where to pick up to finish training
-    # TODO: Include best validation, train, and loss
-
-
-def train_model(model, criterion, optimizer, scheduler, num_epochs,
-                dataloaders, dataset_sizes):
-    """Train the given model.
-
-    Arguments:
-        model {[type]} -- the model to train
-        criterion {torch.nn._Loss} -- a criterion (loss function) 
-        optimizer {torch.optim.Optimizer} -- the optimizer to use such as, SGD
-        scheduler {torch.optim.lr_scheduler} -- schedule learning rate
-        num_epochs {int} -- [description]
-        dataloaders {DataLoader, DataLoader)} -- tuple containing dataloader
-            for train, and dataloader for validation
-        dataset_sizes {(int, int)} -- tuple, sizes for train and val datasets
-
-    Returns:
-        [type] -- [description]
-    """
-
-    # Setup
-    # use gpu if available
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
-
-    # create the results file header
-    results_filepath = make_results_file()
-
-    # setup our best results to return later
-    best_model_weights = copy.deepcopy(model.state_dict())
-    best_val_acc = 0.0
-    associated_train_acc = None
-    associated_train_loss = None
-
-    start_time = time.time()  # to keep track of elapsed time
-
-    # Train
-    # summary: for each epoch, train on the train set, then get
-    for epoch in range(num_epochs):
-        print(f'Epoch {epoch + 1}/{num_epochs}')
-        print("-" * 10)
-
-        # during the epoch, run both train and evaluation
-        for phase in ('train', 'val'):
-            if phase == 'train':
-                # update the scheduler only for train, once per epoch
-                scheduler.step()
-                model.train()  # set model to train mode
-            else:
-                model.eval()  # set model to evaluation mode
-
-            # variables for accumulating batch statistics
-            running_loss = 0.0
-            running_corrects = 0
-
-            # progress bar for each epoch phase
-            with tqdm(desc=phase.capitalize(), total=dataset_sizes[phase],
-                      leave=False, unit="images") as pbar:
-                # iterate over data
-                for inputs, labels in dataloaders[phase]:
-                    inputs = inputs.to(device)
-                    labels = labels.to(device)
-
-                    optimizer.zero_grad()  # reset gradients
-
-                    # set gradient to true only for training
-                    with torch.set_grad_enabled(phase == 'train'):
-                        # forward
-                        outputs = model(inputs)
-                        _, predictions = torch.max(outputs, 1)
-                        loss = criterion(outputs, labels)
-
-                        # backprop and update weights during train
-                        if phase == 'train':
-                            loss.backward()
-                            optimizer.step()
-
-                    # we multiply by input size, because loss.item() is only
-                    # for a single example in our batch found link here:
-                    # https://discuss.pytorch.org/t/interpreting-loss-value/17665/10
-                    running_loss += loss.item() * inputs.size(0)
-                    running_corrects += torch.sum(predictions == labels.data)
-
-                    # update pbar with size of our batch
-                    pbar.update(inputs.size(0))
-
-            # the epoch loss is the average loss across the entire dataset
-            epoch_loss = running_loss / dataset_sizes[phase]
-            # accuracy is also the average of the corrects
-            epoch_acc = running_corrects.double() / dataset_sizes[phase]
-            # print results for this epoch phase
-            print(f'{phase.capitalize()} ' +
-                  f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
-
-            if phase == 'train':
-                epoch_train_acc = epoch_acc
-                epoch_train_loss = epoch_loss
-                # write train loss and accuracy
-                with open(results_filepath, 'a') as f:
-                    f.write(f'{epoch + 1},{epoch_loss},{epoch_acc},')
-            elif phase == 'val':
-                # write validation accuracy
-                with open(results_filepath, 'a') as f:
-                    f.write(f'{epoch_acc}\n')
-                # deep copy the model if we perform better
-                if epoch_acc > best_val_acc:
-                    best_val_acc = epoch_acc
-                    associated_train_acc = epoch_train_acc
-                    associated_train_loss = epoch_train_loss
-                    best_model_weights = copy.deepcopy(model.state_dict())
-
-        print()  # spacer between epochs
-
-    time_elapsed = time.time() - start_time
-    print(f'Training completed in {int(time_elapsed // 60)}m ' +
-          f'{int(time_elapsed % 60)}s')
-    print(f'Best validation accuracy: {best_val_acc:.4f}')
-    print(f'Associated train accuracy: {associated_train_acc:.4f}')
-    print(f'Associated train loss: {associated_train_loss:.4f}')
-    # load best model weights and return the model
-    model.load_state_dict(best_model_weights)
-    return (model, float(best_val_acc),
-            float(associated_train_acc), float(associated_train_loss))
 
 
 def make_results_file():
@@ -255,13 +129,13 @@ if __name__ == '__main__':
     global args
     args = parser.parse_args()
 
-    # Make the output directory for the experiment
+    # some setup for our eventual output directory name
     model_name = "-".join([args.model] + args.added_args)
     # get rid of the extra slash if the user put one
     if args.data_dir[-1] == "/" or args.data_dir[-1] == "\\":
         args.data_dir = args.data_dir[:-1]
     dataset_name = os.path.basename(args.data_dir)
-
+    # Make the output directory for the experiment
     global outdir
     outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name,
                           dataset_name, model_name)
