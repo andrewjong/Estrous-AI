@@ -68,17 +68,13 @@ def write_meta(best_val_acc, associated_train_acc, associated_train_loss):
         associated_train_acc {[type]} -- [description]
         associated_train_loss {[type]} -- [description]
     """
-
-    meta_info = {
-        "experiment_name": args.experiment_name,
-        "data_dir": args.data_dir,
-        "model": args.model,
-        "added_args": args.added_args,
-        "num_epochs": args.num_epochs,
+    meta_info = vars(args)
+    # add extra values to the dictionary
+    meta_info.update({
         "best_val_accuracy": best_val_acc,
         "train_accuracy": associated_train_acc,
         "train_loss": associated_train_loss
-    }
+    })
     meta_out = os.path.join(outdir, META_FNAME)
     with open(meta_out, 'w') as out:
         json.dump(meta_info, out, indent=4)
@@ -108,6 +104,7 @@ if __name__ == '__main__':
 
     parser.add_argument("model",
                         choices=list(TRAIN_MODEL_CHOICES),
+                        nargs="?",
                         help=f'Choose which model to use.')
     parser.add_argument("-e", "--experiment_name",
                         default='unnamed_experiment',
@@ -125,9 +122,25 @@ if __name__ == '__main__':
                         default=[],
                         help="Pass addiitional arguments for instantiating the \
                         chosen model.")
+    parser.add_argument("-l", "--load_args",
+                        help="Option to load in train args from a previous \
+                        train session using that session's \"meta.json\" \
+                        file. Passed and default args will override loaded \
+                        args.")
 
     global args
     args = parser.parse_args()
+    # load args from a previous train session if requested
+    if args.load_args:
+        with open(args.load, 'r') as f:
+            loaded = json.load(f)
+        intersected_keys = set(vars(args).keys()) & set(loaded.keys())
+        args_dict = {k: loaded[k] for k in intersected_keys}
+        print("__Loaded args:__")
+        for arg, value in args_dict.items():
+            if not getattr(args, arg):
+                setattr(args, arg, value)
+                print(f'  {arg}: {value}')
 
     # some setup for our eventual output directory name
     model_name = "-".join([args.model] + args.added_args)
