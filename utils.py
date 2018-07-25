@@ -45,7 +45,6 @@ class AdaptiveThreshold(object):
 
 data_transforms = {
     'train': transforms.Compose([
-        AdaptiveThreshold(),
         transforms.RandomResizedCrop(224),
         # data augmentation, randomly flip and vertically flip across epochs
         transforms.RandomHorizontalFlip(),
@@ -56,7 +55,6 @@ data_transforms = {
         transforms.Normalize(means, stds)
     ]),
     'val': transforms.Compose([
-        AdaptiveThreshold(),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
         transforms.Normalize(means, stds)
