@@ -1,6 +1,7 @@
 import os
 
 import torch
+import PIL
 
 from torchvision import datasets, transforms
 
@@ -13,6 +14,8 @@ stds = (0.229, 0.224, 0.225)
 
 data_transforms = {
     'train': transforms.Compose([
+        transforms.RandomAffine(degrees=30, shear=30, scale=(1, 1.75)),
+        transforms.CenterCrop(950),
         transforms.RandomResizedCrop(224),
         # data augmentation, randomly flip and vertically flip across epochs
         transforms.RandomHorizontalFlip(),
