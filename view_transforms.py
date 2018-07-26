@@ -3,6 +3,7 @@ import utils
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
 from utils import means, stds
 
@@ -23,14 +24,15 @@ dataset, dataloader = datasets["train"], dataloaders["train"]
 
 
 class DataScroller(object):
-    def __init__(self, ax, images, labels, paths):
-        self.ax = ax
+    def __init__(self, fig, ax1, ax2, images, labels, paths):
+        self.ax1 = ax1
+        self.ax2 = ax2
 
         self.images, self.labels, self.paths = images, labels, paths
         self.num_samples, _, _, _ = images.shape
         self.ind = 0  # initialize start to zero
 
-        self.im = ax.imshow(self.images[self.ind])
+        self.im2 = ax2.imshow(self.images[self.ind])
         self.update()
 
     def onscroll(self, event):
@@ -46,17 +48,22 @@ class DataScroller(object):
         self.update()
 
     def update(self):
-        self.im.set_data(self.images[self.ind])
-        ax.set_xlabel(f'Sample {self.ind}\n' + self.paths[self.ind])
+        self.im2.set_data(self.images[self.ind])
+        path = self.paths[self.ind]
+        orig = mpimg.imread(path)
+        ax1.imshow(orig)
+        ax1.set_xlabel(path)
+        ax1.set_ylabel(f'random sample {self.ind}')
 
         label_num = self.labels[self.ind]
         label_name = dataset.classes[label_num]
-        ax.set_title(label_name, fontsize=16)
-        self.im.axes.figure.canvas.draw()
+
+        fig.suptitle(f'\n{label_name}', fontsize=16)
+        self.im2.axes.figure.canvas.draw()
 
 
-fig, ax = plt.subplots(1, 1)
-fig.suptitle("Use arrow keys or mouse wheel to scroll.")
+
+fig, (ax1, ax2) = plt.subplots(1, 2)
 
 # append to our nparrays
 first_image_tensor, first_label_tensor, first_path = next(iter(dataloader))
@@ -77,7 +84,7 @@ images = images.transpose((0, 2, 3, 1))
 images = np.array(stds) * images + np.array(means)
 images = np.clip(images, 0, 1)
 
-tracker = DataScroller(ax, images, labels, paths)
+tracker = DataScroller(fig, ax1, ax2, images, labels, paths)
 
 fig.canvas.mpl_connect('scroll_event', tracker.onscroll)
 fig.canvas.mpl_connect('key_press_event', tracker.onscroll)
