@@ -12,13 +12,13 @@ To create the conda environment, run:
 TODO
 
 # Getting the Data
-Contact Josh or Andrew for the source data. This contains all the images in non-sorted fashion. Once the images are obtained, use the `data_cleaning/sort_and_split.py` to split the data into train/validation/test sets organized by label. This formats the dataset for training. The labels file is in `data_cleaning/labels.csv`.
+Contact Josh or Andrew for the source data. This contains all the images in non-sorted fashion. Once the images are obtained, use the `data_cleaning/sort_and_split.py` to split the data into train/validation/test sets organized by label. This formats the dataset for training. The labels file is `data_cleaning/labels.csv`.
 
-```python data_cleaning/sort_and_split.py data_cleaning/labels.csv data/[sorted_dataset_name] -d [path/to/source/dataset] -g [group1] [group2] -e [exclude keywords]```
+To split the dataset: ```python data_cleaning/sort_and_split.py data_cleaning/labels.csv data/[sorted_dataset_name] -d [path/to/source/dataset] -g [group1] [group2] -e [exclude keywords]```
 
-Group class labels together using the -g flag, e.g. "-g 123 4" groups diestrus (4) vs everything else (123). This allows flexibility for how to group different labels.
-
-Additionally, exclude keywords using the -e flag. Suggested usage is "-e 40x art", as this will remove the 40x zoomed images and artistically-edited images.
+**Command explanation**
+- Group class labels together using the -g flag, e.g. "-g 123 4" groups diestrus (4) vs everything else (123). This allows flexibility for how to group different labels.
+- Additionally, exclude keywords using the -e flag. Suggested usage is "-e 40x art", as this will remove the 40x zoomed images and artistically-edited images.
 
 The above command outputs a structure like this:
 
