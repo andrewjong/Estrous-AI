@@ -1,8 +1,11 @@
 name: estrous-ai
 channels:
   - pytorch
+  - anaconda
   - defaults
 dependencies:
+  - scikit-learn=0.19.1=py36hedc7406_0
+  - scipy=1.1.0=py36hc49cb51_0
   - blas=1.0=mkl
   - ca-certificates=2018.03.07=0
   - certifi=2018.4.16=py36_0
@@ -68,4 +71,4 @@ dependencies:
   - pip:
     - opencv-python==3.4.2.17
     - torch==0.4.1
-prefix: /home/andrew/.conda/envs/estrous-ai
+prefix: /home/andrew/.conda/envs/eai
