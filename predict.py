@@ -5,7 +5,7 @@ import os
 import torch
 from tqdm import tqdm
 
-import utils
+import src.utils as utils
 from src.model_choices import TRAIN_MODEL_CHOICES
 from train import EXPERIMENTS_ROOT
 from train import META_FNAME

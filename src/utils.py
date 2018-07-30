@@ -1,7 +1,6 @@
 import os
 
 import torch
-import PIL
 
 from torchvision import datasets, transforms
 

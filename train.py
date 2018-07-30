@@ -4,7 +4,7 @@ import os
 
 import torch
 
-import utils
+import src.utils as utils
 from src.model_choices import TRAIN_MODEL_CHOICES
 
 EXPERIMENTS_ROOT = "experiments"
@@ -132,7 +132,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # load args from a previous train session if requested
     if args.load_args:
-        with open(args.load, 'r') as f:
+        # if the user passed in a directory, assume they meant "meta.json"
+        if os.path.isdir(args.load_args):
+            args_file = os.path.join(args.load_args, "meta.json")
+        elif os.path.isfile(args.load_args):
+            args_file = args.load_args
+
+        with open(args_file, 'r') as f:
             loaded = json.load(f)
         intersected_keys = set(vars(args).keys()) & set(loaded.keys())
         args_dict = {k: loaded[k] for k in intersected_keys}

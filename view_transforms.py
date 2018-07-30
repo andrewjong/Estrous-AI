@@ -1,12 +1,11 @@
 import argparse
-import utils
 
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import numpy as np
 
-from utils import means, stds
-
+import src.utils as utils
+from src.utils import means, stds
 
 parser = argparse.ArgumentParser(
     description="View the transforms established in utils.py on the train set")
