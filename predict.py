@@ -103,14 +103,25 @@ def load_model(meta_dict, num_classes):
 
 
 def make_results_file(header):
-    """Creates a file (overwrites if existing) for recording train results
-    using the results path specified in parse_args.
-    Adds in a header for the file as "epoch,loss,train_acc,val_acc"
-
+    """Creates a csv file (overwrites if existing) for recording prediction
+    results using the load_dir path specified in argparse.
+    Writes the specified header to the top of the output file.
+    
+    Arguments:
+        header {string} -- the header to write
+    
     Returns:
         string -- path of the created file
     """
-    results_filepath = os.path.join(args.load_dir, PREDICT_FNAME)
+
+    # create the filename
+    name_parts = [args.subset, PREDICT_FNAME]
+    if args.data_dir:
+        name_parts.insert(0, os.path.basename(args.data_dir))
+    out_name = "_".join(name_parts)
+
+    # output in the experiment directory
+    results_filepath = os.path.join(args.load_dir, out_name)
     # write the csv header
     with open(results_filepath, 'w') as f:
         f.write(header + "\n")
