@@ -98,7 +98,9 @@ def load_model(meta_dict, num_classes):
     model = HyperParamsClass(num_classes, *meta_dict["added_args"]).model
 
     model_params = os.path.join(args.load_dir, MODEL_PARAMS_FNAME)
-    model.load_state_dict(torch.load(model_params))
+    model.load_state_dict(torch.load(model_params,
+                                     map_location=lambda storage,
+                                     loc: storage))
     return model
 
 
@@ -106,10 +108,10 @@ def make_results_file(header):
     """Creates a csv file (overwrites if existing) for recording prediction
     results using the load_dir path specified in argparse.
     Writes the specified header to the top of the output file.
-    
+
     Arguments:
         header {string} -- the header to write
-    
+
     Returns:
         string -- path of the created file
     """
