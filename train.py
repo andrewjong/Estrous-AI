@@ -46,7 +46,7 @@ def main():
     print(f'Writing results to "{outdir}"')
 
     # make the results file
-    results_filepath = make_results_file()
+    results_filepath = prepare_results_file()
     # Train
     trained_model = trainable.train(dataloaders, dataset_sizes,
                                     args.num_epochs, results_filepath)
@@ -82,7 +82,7 @@ def write_meta(best_val_acc, associated_train_acc, associated_train_loss):
     # where to pick up to finish training
 
 
-def make_results_file():
+def prepare_results_file():
     """Creates a file (overwrites if existing) for recording train results
     using the results path specified in parse_args.
     Adds in a header for the file as "epoch,loss,train_acc,val_acc"
@@ -91,9 +91,8 @@ def make_results_file():
         string -- path of the created file
     """
     results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
-
-    with open(results_filepath, 'w') as f:
-        f.write("epoch,loss,train_acc,val_acc\n")
+    header = "epoch,loss,train_acc,val_acc"
+    results_filepath = utils.make_csv_with_header(results_filepath, header)
     return results_filepath
 
 

@@ -14,25 +14,41 @@ from train import MODEL_PARAMS_FNAME
 PREDICT_FNAME = "predictions.csv"
 
 
-def main():
+def create_predictions(load_dir, subset, alternate_data_dir=False):
+    """Create predictions file using the model from an experiment directory.
+    Uses the experiment directory's "meta.json" file to load model
+    architecture and path to dataset.
+
+    Arguments:
+        load_dir {string} -- experiment directory path that contains experiment
+        files
+        subset {string} -- either "train", "val", or "test", i.e. which subset
+        to run predictions on
+
+    Keyword Arguments:
+        alternate_data_dir {bool} -- whether to run the model on a different
+        dataset than is specified in 'meta.json' (default: {False})
+    """
+
     # load in the meta data created by training
-    meta_path = os.path.join(args.load_dir, META_FNAME)
+    meta_path = os.path.join(load_dir, META_FNAME)
     with open(meta_path, 'r') as f:
         meta_dict = json.load(f)
 
     # if the user specifies a different dataset to predict on for some reason,
     # maybe for fun, use it. else just use the dataset specified in the meta
-    data_dir = args.data_dir if args.data_dir else meta_dict["data_dir"]
+    data_dir = alternate_data_dir if alternate_data_dir \
+        else meta_dict["data_dir"]
     # Get our DataLoader
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        data_dir, args.subset, include_paths=True)
-    dataset = datasets[args.subset]
+        data_dir, subset, include_paths=True)
+    dataset = datasets[subset]
     num_classes = len(dataset.classes)
-    dataloader = dataloaders[args.subset]
+    dataloader = dataloaders[subset]
 
     # load the model using the meta data
     try:
-        model_path = os.path.join(args.load_dir, MODEL_PARAMS_FNAME)
+        model_path = os.path.join(load_dir, MODEL_PARAMS_FNAME)
         model = load_model(model_path, meta_dict, num_classes)
     except FileNotFoundError:
         print("No model file found. Did training finish? " +
@@ -44,10 +60,8 @@ def main():
     model = model.to(device)
     model.eval()
 
-    # put the image name, the classes, the predicted class, and the label
-    header = ','.join(['image_name'] + dataset.classes +
-                      ['predicted', 'label'])
-    results_file = make_results_file(header)
+    results_file = prepare_results_csv(load_dir, subset, dataset.classes,
+                                       alternate_data_dir)
     print("Writing results to", results_file)
 
     with tqdm(desc="Predict", total=len(dataset)) as pbar:
@@ -104,29 +118,50 @@ def load_model(model_path, meta_dict, num_classes):
     return model
 
 
-def make_results_file(header):
-    """Creates a csv file (overwrites if existing) for recording prediction
-    results using the load_dir path specified in argparse.
-    Writes the specified header to the top of the output file.
+def prepare_results_csv(load_dir, subset, class_names,
+                        alternate_data_dir=False):
+    """Prepares the results csv.
 
     Arguments:
-        header {string} -- the header to write
+        load_dir {string} -- [description]
+        data_dir {string} -- [description]
+        subset {string} -- [description]
+        class_names {iterable} -- [description]
 
     Returns:
-        string -- path of the created file
+        [type] -- [description]
     """
 
-    # create the filename
-    name_parts = [args.subset, PREDICT_FNAME]
-    if args.data_dir:
-        name_parts.insert(0, os.path.basename(args.data_dir))
-    out_name = "_".join(name_parts)
+    # put the image name, the classes, the predicted class, and the label
+    header = ','.join(['image_name'] + class_names +
+                      ['predicted', 'label'])
+    results_filepath = make_out_file_path(load_dir, subset, alternate_data_dir)
+    results_filepath = utils.make_csv_with_header(results_filepath, header)
+    return results_filepath
 
+
+def make_out_file_path(load_dir, subset, alternate_data_dir=False):
+    """Creates a path to output predictions.
+
+
+    Arguments:
+        load_dir {[type]} -- [description]
+        data_dir {[type]} -- [description]
+        subset {[type]} -- [description]
+
+    Returns:
+        [type] -- [description]
+    """
+
+    # create the file path
+    name_parts = [subset, PREDICT_FNAME]
+    # if a different dataset was specified, include it in the filename to
+    # differentiate it
+    if alternate_data_dir:
+        name_parts.insert(0, os.path.basename(alternate_data_dir))
+    out_name = "_".join(name_parts)
     # output in the experiment directory
-    results_filepath = os.path.join(args.load_dir, out_name)
-    # write the csv header
-    with open(results_filepath, 'w') as f:
-        f.write(header + "\n")
+    results_filepath = os.path.join(load_dir, out_name)
     return results_filepath
 
 
@@ -145,7 +180,6 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--subset", default="val",
                         help="Which subset of the dataset to evaluate on. " +
                         "E.g. 'train', 'val', or 'test' (default: 'val').")
-    global args
     args = parser.parse_args()
 
-    main()
+    create_predictions(args.load_dir, args.subset, args.data_dir)

@@ -82,3 +82,22 @@ class ImageFolderWithPaths(datasets.ImageFolder):
         # make a new tuple that includes original and the path
         tuple_with_path = (original_tuple + (path,))
         return tuple_with_path
+
+
+def make_csv_with_header(results_filepath, header):
+    """Creates a csv file (overwrites if existing) for recording prediction
+    results using the load_dir path specified in argparse.
+    Writes the specified header to the top of the output file.
+
+    Arguments:
+        results_filepath {string} -- path of file to output csv
+        header {string} -- the header to write
+
+    Returns:
+        string -- path of the created file
+    """
+    # write the csv header
+    with open(results_filepath, 'w') as f:
+        f.write(header + "\n")
+    return results_filepath
+
