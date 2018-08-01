@@ -32,7 +32,8 @@ def main():
 
     # load the model using the meta data
     try:
-        model = load_model(meta_dict, num_classes)
+        model_path = os.path.join(args.load_dir, MODEL_PARAMS_FNAME)
+        model = load_model(model_path, meta_dict, num_classes)
     except FileNotFoundError:
         print("No model file found. Did training finish? " +
               f'Make sure the model file is named "{MODEL_PARAMS_FNAME}".')
@@ -81,7 +82,7 @@ def main():
             pbar.update(inputs.size(0))
 
 
-def load_model(meta_dict, num_classes):
+def load_model(model_path, meta_dict, num_classes):
     """Load a model using the meta file created during training.
     First uses the model name and added arguments to construct the
     architecture. Then loads in the parameter weights using the model file.
@@ -97,8 +98,7 @@ def load_model(meta_dict, num_classes):
     HyperParamsClass = TRAIN_MODEL_CHOICES[meta_dict["model"]]
     model = HyperParamsClass(num_classes, *meta_dict["added_args"]).model
 
-    model_params = os.path.join(args.load_dir, MODEL_PARAMS_FNAME)
-    model.load_state_dict(torch.load(model_params,
+    model.load_state_dict(torch.load(model_path,
                                      map_location=lambda storage,
                                      loc: storage))
     return model
