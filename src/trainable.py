@@ -115,11 +115,14 @@ class Trainable:
                       f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
 
                 if phase == 'train':
+                    batch_size = inputs.size(0)
+                    step_num = int((epoch + 1) * 
+                                    dataset_sizes['train'] / batch_size)
                     epoch_train_acc = epoch_acc
                     epoch_train_loss = epoch_loss
                     # write train loss and accuracy
                     with open(results_filepath, 'a') as f:
-                        f.write(f'{epoch + 1},{epoch_loss},{epoch_acc},')
+                        f.write(f'{step_num},{epoch_loss},{epoch_acc},')
                 elif phase == 'val':
                     # write validation accuracy
                     with open(results_filepath, 'a') as f:
