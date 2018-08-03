@@ -5,15 +5,17 @@ import os
 import torch
 
 import src.utils as utils
+from common_constants import EXPERIMENTS_ROOT, META_FNAME, MODEL_PARAMS_FNAME
+from metrics import create_all_metrics
+from predict import create_predictions
 from src.model_choices import TRAIN_MODEL_CHOICES
 
-EXPERIMENTS_ROOT = "experiments"
-META_FNAME = "meta.json"
 TRAIN_RESULTS_FNAME = "train.csv"
-MODEL_PARAMS_FNAME = "model.pth"
 
-
-def main():
+def build_and_train_model():
+    """ This is the main training function that constructs the model and trains
+    it on the chosen dataset.
+    """
     # Obtain train and validation datasets and dataloaders
     datasets, dataloaders = utils.get_datasets_and_loaders(
         args.data_dir, "train", "val")
@@ -35,7 +37,7 @@ def main():
 
     # Make results dir path. Check if it already exists.
     try:
-        os.makedirs(outdir)
+        os.makedirs(outdir, exist_ok=args.overwrite)
     except OSError:
         can_continue = input(f'The directory "{outdir}" already exists. ' +
                              "Do you wish to continue anyway? (y/N): ")
@@ -126,6 +128,16 @@ if __name__ == '__main__':
                         train session using that session's \"meta.json\" \
                         file. Passed and default args will override loaded \
                         args.")
+    parser.add_argument("--skip_metrics",
+                         action='store_true',
+                         help="Choose to NOT run predict.py and metrics.py \
+                         on the validation-set after training, i.e. do not \
+                         calculate performance metrics.")
+    parser.add_argument("--overwrite", 
+                        action='store_true', 
+                        help="Skip the prompt that double checks whether to \
+                        overwrite existing files. Existing files will be \
+                        overwritten.")
 
     global args
     args = parser.parse_args()
@@ -133,19 +145,23 @@ if __name__ == '__main__':
     if args.load_args:
         # if the user passed in a directory, assume they meant "meta.json"
         if os.path.isdir(args.load_args):
-            args_file = os.path.join(args.load_args, "meta.json")
+            load_args_file = os.path.join(args.load_args, "meta.json")
         elif os.path.isfile(args.load_args):
-            args_file = args.load_args
+            load_args_file = args.load_args
 
-        with open(args_file, 'r') as f:
+        with open(load_args_file, 'r') as f:
             loaded = json.load(f)
+        # only load intersecting arguments, in case the load file has extraneous
+        # information
         intersected_keys = set(vars(args).keys()) & set(loaded.keys())
-        args_dict = {k: loaded[k] for k in intersected_keys}
+        load_args_dict = {k: loaded[k] for k in intersected_keys}
         print("__Loaded args:__")
-        for arg, value in args_dict.items():
-            if not getattr(args, arg):
-                setattr(args, arg, value)
-                print(f'  {arg}: {value}')
+        # for each arg in argparse, check if any were not set by the user
+        for common_arg, load_value in load_args_dict.items():
+            # if the user did not set the argument, load it
+            if not getattr(args, common_arg):
+                setattr(args, common_arg, load_value)
+                print(f'  {common_arg}: {load_value}')
 
     # some setup for our eventual output directory name
     model_name = "-".join([args.model] + args.added_args)
@@ -158,4 +174,16 @@ if __name__ == '__main__':
     outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name,
                           dataset_name, model_name)
 
-    main()
+    # run the main training script
+    build_and_train_model()
+
+    # calculate performance metrics with the saved model
+    print('skip_metrics: ', args.skip_metrics)
+    if not args.skip_metrics:
+        print()
+        print("Creating predictions file...")
+        predictions_file = create_predictions(outdir)
+        print("Calculating performance metrics...")
+        create_all_metrics(predictions_file, outdir)
+        print()
+        print("Done.")

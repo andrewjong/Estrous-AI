@@ -6,15 +6,13 @@ import torch
 from tqdm import tqdm
 
 import src.utils as utils
+from common_constants import EXPERIMENTS_ROOT, META_FNAME, MODEL_PARAMS_FNAME
 from src.model_choices import TRAIN_MODEL_CHOICES
-from train import EXPERIMENTS_ROOT
-from train import META_FNAME
-from train import MODEL_PARAMS_FNAME
 
-PREDICT_FNAME = "predictions.csv"
+PREDICT_BASENAME = "predictions.csv"
 
 
-def create_predictions(load_dir, subset, alternate_data_dir=False):
+def create_predictions(load_dir, subset='val', alternate_data_dir=False):
     """Create predictions file using the model from an experiment directory.
     Uses the experiment directory's "meta.json" file to load model
     architecture and path to dataset.
@@ -22,7 +20,7 @@ def create_predictions(load_dir, subset, alternate_data_dir=False):
     Arguments:
         load_dir {string} -- experiment directory path that contains experiment
         files
-        subset {string} -- either "train", "val", or "test", i.e. which subset
+        subset {string} -- either 'train', 'val', or 'test', i.e. which subset
         to run predictions on
 
     Keyword Arguments:
@@ -78,7 +76,7 @@ def create_predictions(load_dir, subset, alternate_data_dir=False):
                 for i, row in enumerate(outputs):
                     # keep only the first 4 decimals
                     values_as_strings = [f'{value:.4f}'
-                                         for value in row.numpy()]
+                                         for value in row.cpu().numpy()]
                     image_name = os.path.basename(paths[i])
                     # get the actual class names instead of just indices
                     predicted_class_name = dataset.classes[predictions[i]]
@@ -94,6 +92,8 @@ def create_predictions(load_dir, subset, alternate_data_dir=False):
                         f.write(csv_line + '\n')
 
             pbar.update(inputs.size(0))
+    # return the path to the results file
+    return results_file
 
 
 def load_model(model_path, meta_dict, num_classes):
@@ -154,7 +154,7 @@ def make_out_file_path(load_dir, subset, alternate_data_dir=False):
     """
 
     # create the file path
-    name_parts = [subset, PREDICT_FNAME]
+    name_parts = [subset, PREDICT_BASENAME]
     # if a different dataset was specified, include it in the filename to
     # differentiate it
     if alternate_data_dir:
