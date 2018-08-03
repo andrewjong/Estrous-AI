@@ -1,0 +1,16 @@
+{
+    "model": "resnet_transfer",
+    "experiment_name": "add_color_jitter_augment",
+    "data_dir": "data/4_class",
+    "num_epochs": 50,
+    "added_args": [
+        "101",
+        "finetune"
+    ],
+    "load_args": "experiments/random_affine_augment/4_class/resnet_transfer-101-finetune/",
+    "skip_metrics": false,
+    "overwrite": false,
+    "best_val_accuracy": 0.7582938388625593,
+    "train_accuracy": 0.7904858299595142,
+    "train_loss": 0.5547549872383898
+}
