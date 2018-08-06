@@ -91,7 +91,7 @@ print(f'Sorting files...')
 with tqdm(total=len(labels_df), unit="sort") as pbar:
     # iterate over each row in the dataframe (using itertuples for speed)
     for row in labels_df.itertuples():
-        animal_label = row.Index
+        animal_label = str(row.Index)
 
         # iterate over each row's elements
         # (we iterate using the index because the "row" returned by itertuples
@@ -103,7 +103,7 @@ with tqdm(total=len(labels_df), unit="sort") as pbar:
             if not pd.isnull(phase_num):
                 phase_label = PHASE_NUM_TO_LABEL[str(phase_num)]
                 # (columns are offset by 1 as it lacks the animal label)
-                date_label = labels_df.columns[i - 1]
+                date_label = str(labels_df.columns[i - 1])
 
                 # images are named starting with "AnimalNumber_Date"
                 f_name = animal_label + "_" + date_label

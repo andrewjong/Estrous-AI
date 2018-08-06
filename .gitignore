@@ -1,5 +1,7 @@
-data/
 .vscode/
 __pycache__
-*.pth
+data
+data/
+models
 models/
+*.pth
