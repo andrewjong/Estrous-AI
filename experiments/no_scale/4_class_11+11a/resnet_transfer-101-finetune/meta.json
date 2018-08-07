@@ -1,0 +1,17 @@
+{
+    "model": "resnet_transfer",
+    "experiment_name": "no_scale",
+    "data_dir": "data/4_class_11+11a",
+    "num_epochs": 50,
+    "batch_size": 4,
+    "added_args": [
+        "101",
+        "finetune"
+    ],
+    "load_args": "experiments/random_affine_augment/4_class/resnet_transfer-101-finetune/",
+    "skip_metrics": false,
+    "overwrite": false,
+    "best_val_accuracy": 0.7035714285714285,
+    "train_accuracy": 0.7848970251716247,
+    "train_loss": 0.5629865419287249
+}
