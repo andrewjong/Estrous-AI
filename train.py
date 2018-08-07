@@ -18,7 +18,7 @@ def build_and_train_model():
     """
     # Obtain train and validation datasets and dataloaders
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        args.data_dir, "train", "val")
+        args.data_dir, "train", "val", batch_size=args.batch_size)
     dataset_sizes = {subset: len(datasets[subset])
                      for subset in ('train', 'val')}
 
@@ -119,6 +119,8 @@ if __name__ == '__main__':
     parser.add_argument("-n", "--num_epochs", type=int, metavar="N",
                         default=50,
                         help='Number of epochs to train for (default: 50).')
+    parser.add_argument("-b", "--batch_size", default=4,
+                        help="Select a batch size.")
     parser.add_argument("-a", "--added_args", nargs="+",
                         default=[],
                         help="Pass addiitional arguments for instantiating the \
@@ -141,6 +143,10 @@ if __name__ == '__main__':
 
     global args
     args = parser.parse_args()
+
+    print()
+    print(f'*** BEGINNING EXPERIMENT: "{args.experiment_name}" ***', end="\n\n")
+
     # load args from a previous train session if requested
     if args.load_args:
         # if the user passed in a directory, assume they meant "meta.json"
@@ -155,13 +161,14 @@ if __name__ == '__main__':
         # information
         intersected_keys = set(vars(args).keys()) & set(loaded.keys())
         load_args_dict = {k: loaded[k] for k in intersected_keys}
-        print("__Loaded args:__")
+        print("Loaded args:")
         # for each arg in argparse, check if any were not set by the user
         for common_arg, load_value in load_args_dict.items():
             # if the user did not set the argument, load it
             if not getattr(args, common_arg):
                 setattr(args, common_arg, load_value)
                 print(f'  {common_arg}: {load_value}')
+        print()
 
     # some setup for our eventual output directory name
     model_name = "-".join([args.model] + args.added_args)
@@ -178,12 +185,15 @@ if __name__ == '__main__':
     build_and_train_model()
 
     # calculate performance metrics with the saved model
-    print('skip_metrics: ', args.skip_metrics)
+    # print('skip_metrics: ', args.skip_metrics)
     if not args.skip_metrics:
         print()
         print("Creating predictions file...")
         predictions_file = create_predictions(outdir)
         print("Calculating performance metrics...")
         create_all_metrics(predictions_file, outdir)
-        print()
-        print("Done.")
+    else:
+        print("Skipping metrics.")
+
+    print()
+    print("Done.")
