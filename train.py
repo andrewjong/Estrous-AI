@@ -93,7 +93,7 @@ def prepare_results_file():
         string -- path of the created file
     """
     results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
-    header = "epoch,loss,train_acc,val_acc"
+    header = "steps,loss,train_acc,val_acc"
     results_filepath = utils.make_csv_with_header(results_filepath, header)
     return results_filepath
 

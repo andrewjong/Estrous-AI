@@ -19,6 +19,10 @@ data_transforms = {
         # data augmentation, randomly flip and vertically flip across epochs
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
+        # ColorJitter values chosen somewhat arbitrarily by what "looked" good
+        # possibly something to optimize
+        transforms.ColorJitter(brightness=0.20, saturation=0.70, contrast=0.5,
+                               hue=0.10),
         # convert to PyTorch tensor
         transforms.ToTensor(),
         # normalize
@@ -100,4 +104,3 @@ def make_csv_with_header(results_filepath, header):
     with open(results_filepath, 'w') as f:
         f.write(header + "\n")
     return results_filepath
-
