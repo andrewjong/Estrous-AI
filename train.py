@@ -119,7 +119,7 @@ if __name__ == '__main__':
     parser.add_argument("-n", "--num_epochs", type=int, metavar="N",
                         default=50,
                         help='Number of epochs to train for (default: 50).')
-    parser.add_argument("-b", "--batch_size", default=4,
+    parser.add_argument("-b", "--batch_size", default=4, type=int,
                         help="Select a batch size.")
     parser.add_argument("-a", "--added_args", nargs="+",
                         default=[],

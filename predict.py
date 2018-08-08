@@ -17,6 +17,8 @@ from src.model_choices import TRAIN_MODEL_CHOICES
 # name for output. will have subset prepended to it later
 PREDICT_BASENAME = "predictions.csv"
 
+def get_device():
+    return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def create_predictions(load_dir, subset='val', alternate_data_dir=False):
     """Create predictions file using the model from an experiment directory.
@@ -45,7 +47,7 @@ def create_predictions(load_dir, subset='val', alternate_data_dir=False):
     # load the model using the meta data
     model_path = os.path.join(load_dir, MODEL_PARAMS_FNAME)
     num_classes = len(dataset.classes)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = get_device()
     model = load_model(model_path, meta_dict, num_classes, device)
 
     # get where we will write results to
