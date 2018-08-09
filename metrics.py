@@ -7,11 +7,11 @@ import pandas as pd
 import seaborn as sns
 
 from sklearn.metrics import confusion_matrix
+from src.utils import SORT_BY_PHASE_FN
 
 CONFUSION_MATRIX_NAME = "confusion_matrix.png"
 # orders the phases according to the Estrous cycle by first letter
 # (*p*roestrus, *e*strus, etc)
-ORDER = {'p': 1, 'e': 2, 'm': 3, 'd': 4}
 
 
 def create_all_metrics(predictions_files, outdir, name_prefix=""):
@@ -48,11 +48,15 @@ def create_confusion_matrix_plots(predictions_file, out_file):
     """
 
     df = pd.read_csv(predictions_file)
+    try:
+        df = df.drop(columns=["not_diestrus"])
+    except KeyError:
+        pass
     # classes in between the file name (first column) and predicted/label
     # (last two columns)
     classes = list(df.columns[1:-2])
     # since the first letters for phases are all different, sort using this
-    classes.sort(key=lambda c: ORDER[c[0]])
+    classes.sort(key=SORT_BY_PHASE_FN)
 
     cm = confusion_matrix(df['label'], df['predicted'], labels=classes)
     # plot standard confusion matrix

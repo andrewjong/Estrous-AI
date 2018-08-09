@@ -90,13 +90,13 @@ def get_meta_dict_from_load_dir(load_dir):
     return meta_dict
 
 
-def get_subset_dataset_and_loader(data_dir, subset):
+def get_subset_dataset_and_loader(data_dir, subset, batch_size=4):
     """Returns the single dataset and dataloader for the specfied subset
-    
+
     Arguments:
         subset {string} -- either "train" or "val" or "test"
         data_dir {string} -- top level directory to load data from
-    
+
     Returns:
         torch.Dataset, torch.DataLoader -- the dataset and dataloader for that 
         subset
@@ -104,7 +104,7 @@ def get_subset_dataset_and_loader(data_dir, subset):
 
     # Get our DataLoader
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        data_dir, subset, include_paths=True)
+        data_dir, subset, include_paths=True, batch_size=batch_size)
     dataset = datasets[subset]
     dataloader = dataloaders[subset]
 
@@ -211,7 +211,7 @@ def write_row_prediction(image_name, row, label_class_name,
     
     Arguments:
         image_name {string} -- name of the file
-        row_values {torch.Tensor} -- one dimensional tensor containing outputs 
+        row_values {torch.Tensor} -- one dimensional tensor containing outputs
                                 for each class
         label_class {string} -- the correct labeled class name
         predicted_class {string} -- the class name of the prediction
