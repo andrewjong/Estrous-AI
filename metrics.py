@@ -95,6 +95,9 @@ def plot_confusion_matrix(confusion_matrix, class_names, normalize=False,
     if normalize:
         confusion_matrix = confusion_matrix / \
             confusion_matrix.sum(axis=1)[:, np.newaxis]
+        vmin, vmax = 0.0, 1.0
+    else:
+        vmin, vmax = 0, None
     # make a dataframe with rows and columns labeled as class names
     df_cm = pd.DataFrame(
         confusion_matrix, index=class_names, columns=class_names,
@@ -103,7 +106,8 @@ def plot_confusion_matrix(confusion_matrix, class_names, normalize=False,
     fig = plt.figure(figsize=figsize)  # make a figure
     fmt = "0.2f" if normalize else "d"  # number format
     # make the confusion matrix as a heatmap for colors
-    heatmap = sns.heatmap(df_cm, annot=True, fmt=fmt, cmap=cmap)
+    heatmap = sns.heatmap(df_cm, vmin=vmin, vmax=vmax,
+                          annot=True, fmt=fmt, cmap=cmap)
 
     # set our axis tick labels for the classes
     heatmap.yaxis.set_ticklabels(
