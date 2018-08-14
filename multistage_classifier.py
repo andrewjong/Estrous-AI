@@ -10,7 +10,6 @@ from predict import (get_device, get_meta_dict_from_load_dir,
                      prepare_results_csv, write_row_prediction)
 from src.utils import SORT_BY_PHASE_FN
 
-
 device = get_device()
 num_gpus = torch.cuda.device_count()
 
@@ -20,6 +19,8 @@ def main(data_dir, subset, model_paths, out_dir):
     (dataset, dataloader, binary_model, trinary_model) = setup_multistage(
         data_dir, subset, model_paths, out_dir)
 
+    # print("Classes:", dataset.classes)
+    # quit()
     print("Running predictions...")
     results_file = run_twostep_classifier(dataset, subset, dataloader,
                                           binary_model, trinary_model)
@@ -44,6 +45,11 @@ def setup_multistage(data_dir, subset, model_paths, out_dir):
     return quartary_dataset, quartary_dataloader, binary_model, trinary_model
 
 
+# TODO: THIS CODE IS VERY BRITTLE. WE MUST FIX IT. Brittle because rushing the
+# final-week deadline
+# too many hardcoded numbers
+# for example, prediction of diestrus == 0
+# also the +1 offset for trinary output
 def run_twostep_classifier(dataset, subset, dataloader, binary_model,
                            trinary_model):
     # get where we will write results to
@@ -78,9 +84,11 @@ def run_twostep_classifier(dataset, subset, dataloader, binary_model,
                         trinary_model(input_tensor))
                 _, prediction_2 = torch.max(trinary_output, 1)
 
-                predicted_class = dataset.classes[prediction_2]
+                # offset by 1 because trinary output lacks diestrus
+                predicted_class = dataset.classes[prediction_2 + 1]
             else:
-                raise ValueError("Some shit happened")
+                raise ValueError(
+                    "Some shit happened, first prediction was not binary.")
 
             image_name = os.path.basename(path)
             label_class = dataset.classes[label]

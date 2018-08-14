@@ -104,7 +104,7 @@ def get_subset_dataset_and_loader(data_dir, subset, batch_size=4):
 
     # Get our DataLoader
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        data_dir, subset, include_paths=True, batch_size=batch_size)
+        data_dir, subset, include_paths=True, batch_size=batch_size, shuffle=False)
     dataset = datasets[subset]
     dataloader = dataloaders[subset]
 

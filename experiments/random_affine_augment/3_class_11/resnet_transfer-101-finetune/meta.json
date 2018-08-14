@@ -1,7 +1,7 @@
 {
     "model": "resnet_transfer",
     "experiment_name": "random_affine_augment",
-    "data_dir": "data/3_class",
+    "data_dir": "data/3_class_11",
     "num_epochs": 50,
     "added_args": [
         "101",

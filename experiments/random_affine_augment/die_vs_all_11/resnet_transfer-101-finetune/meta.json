@@ -1,7 +1,7 @@
 {
     "model": "resnet_transfer",
     "experiment_name": "random_affine_augment",
-    "data_dir": "data/die_vs_all",
+    "data_dir": "data/die_vs_all_11",
     "num_epochs": 50,
     "added_args": [
         "101",
