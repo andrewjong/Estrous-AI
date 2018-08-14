@@ -33,9 +33,7 @@ def build_and_train_model(model_starter_file=False):
         trainable = TrainableClass(num_classes, *args.added_args)
         # load in existing weights if requested
         if model_starter_file:
-            trainable.model.load_state_dict(
-                torch.load(
-                    model_starter_file, map_location=lambda storage, loc: storage))
+            load_pretrained_model_weights(trainable.model, model_starter_file)
     except TypeError as e:
         print("Caught TypeError when instantiating model class. Make sure " +
               "all required model arguments are passed, in order, using the " +
@@ -68,6 +66,25 @@ def build_and_train_model(model_starter_file=False):
     # Save the model
     save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
     torch.save(trained_model.state_dict(), save_path)
+
+
+def load_pretrained_model_weights(target_model, load_file):
+    """Load pretrained model weights except for the last fully connected layer
+
+    Arguments:
+        target_model {[type]} -- [description]
+        load_file {[type]} -- [description]
+    """
+
+    pretrained_dict = torch.load(
+        load_file, map_location=lambda storage, loc: storage)
+
+    model_dict = target_model.state_dict()
+    excluded = ['fc.weight', 'fc.bias']
+    pretrained_dict = {k: v for k,
+                       v in pretrained_dict.items() if k not in excluded}
+    model_dict.update(pretrained_dict)
+    target_model.load_state_dict(model_dict)
 
 
 def write_meta(best_val_acc, associated_train_acc, associated_train_loss):
