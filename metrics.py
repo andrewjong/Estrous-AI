@@ -55,8 +55,12 @@ def create_confusion_matrix_plots(predictions_file, out_file):
     # classes in between the file name (first column) and predicted/label
     # (last two columns)
     classes = list(df.columns[1:-2])
-    # since the first letters for phases are all different, sort using this
-    classes.sort(key=SORT_BY_PHASE_FN)
+    if len(classes) == 2:
+        # sort alphabetical for diestrus vs pro-est-met, or met-die vs pro-est
+        classes.sort()
+    else:
+        # since the first letters for phases are all different, sort using this
+        classes.sort(key=SORT_BY_PHASE_FN)
 
     cm = confusion_matrix(df['label'], df['predicted'], labels=classes)
     # plot standard confusion matrix
