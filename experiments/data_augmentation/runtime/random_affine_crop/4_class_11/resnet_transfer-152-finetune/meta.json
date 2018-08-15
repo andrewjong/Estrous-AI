@@ -1,0 +1,18 @@
+{
+    "model": "resnet_transfer",
+    "experiment_name": "data_augmentation/runtime/BEST_random_affine_crop/",
+    "data_dir": "data/4_class_11",
+    "num_epochs": 50,
+    "batch_size": 4,
+    "added_args": [
+        "152",
+        "finetune"
+    ],
+    "load_args": "experiments/data_augmentation/runtime/BEST_random_affine_crop/4_class_11/resnet_transfer-101-finetune/",
+    "use_previous_model": false,
+    "skip_metrics": false,
+    "overwrite": false,
+    "best_val_accuracy": 0.7772511848341233,
+    "train_accuracy": 0.8168016194331984,
+    "train_loss": 0.47457192192676095
+}

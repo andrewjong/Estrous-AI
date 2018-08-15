@@ -1,0 +1,18 @@
+{
+    "model": "resnet_transfer",
+    "experiment_name": "data_augmentation/runtime/add_color_jitter_augment",
+    "data_dir": "data/die_vs_all_11",
+    "num_epochs": 32,
+    "batch_size": 4,
+    "added_args": [
+        "152",
+        "finetune"
+    ],
+    "load_args": "experiments/data_augmentation/runtime/add_color_jitter_augment/die_vs_all_11/resnet_transfer-101-finetune",
+    "use_previous_model": true,
+    "skip_metrics": false,
+    "overwrite": false,
+    "best_val_accuracy": 0.9099526066350712,
+    "train_accuracy": 0.8926038500506587,
+    "train_loss": 0.2623726139231958
+}
