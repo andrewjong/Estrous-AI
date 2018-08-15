@@ -7,11 +7,11 @@ import pandas as pd
 import seaborn as sns
 
 from sklearn.metrics import confusion_matrix
+from src.utils import SORT_BY_PHASE_FN
 
 CONFUSION_MATRIX_NAME = "confusion_matrix.png"
 # orders the phases according to the Estrous cycle by first letter
 # (*p*roestrus, *e*strus, etc)
-ORDER = {'p': 1, 'e': 2, 'm': 3, 'd': 4}
 
 
 def create_all_metrics(predictions_files, outdir, name_prefix=""):
@@ -48,11 +48,19 @@ def create_confusion_matrix_plots(predictions_file, out_file):
     """
 
     df = pd.read_csv(predictions_file)
+    try:
+        df = df.drop(columns=["not_diestrus"])
+    except KeyError:
+        pass
     # classes in between the file name (first column) and predicted/label
     # (last two columns)
     classes = list(df.columns[1:-2])
-    # since the first letters for phases are all different, sort using this
-    classes.sort(key=lambda c: ORDER[c[0]])
+    if len(classes) == 2:
+        # sort alphabetical for diestrus vs pro-est-met, or met-die vs pro-est
+        classes.sort()
+    else:
+        # since the first letters for phases are all different, sort using this
+        classes.sort(key=SORT_BY_PHASE_FN)
 
     cm = confusion_matrix(df['label'], df['predicted'], labels=classes)
     # plot standard confusion matrix
@@ -91,6 +99,9 @@ def plot_confusion_matrix(confusion_matrix, class_names, normalize=False,
     if normalize:
         confusion_matrix = confusion_matrix / \
             confusion_matrix.sum(axis=1)[:, np.newaxis]
+        vmin, vmax = 0.0, 1.0
+    else:
+        vmin, vmax = 0, None
     # make a dataframe with rows and columns labeled as class names
     df_cm = pd.DataFrame(
         confusion_matrix, index=class_names, columns=class_names,
@@ -99,7 +110,8 @@ def plot_confusion_matrix(confusion_matrix, class_names, normalize=False,
     fig = plt.figure(figsize=figsize)  # make a figure
     fmt = "0.2f" if normalize else "d"  # number format
     # make the confusion matrix as a heatmap for colors
-    heatmap = sns.heatmap(df_cm, annot=True, fmt=fmt, cmap=cmap)
+    heatmap = sns.heatmap(df_cm, vmin=vmin, vmax=vmax,
+                          annot=True, fmt=fmt, cmap=cmap)
 
     # set our axis tick labels for the classes
     heatmap.yaxis.set_ticklabels(

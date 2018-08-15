@@ -4,6 +4,14 @@ import torch
 
 from torchvision import datasets, transforms
 
+from common_constants import PHASE_ORDER
+
+def SORT_BY_PHASE_FN(item):
+    try:
+        return PHASE_ORDER[item[0].lower()]
+    except(KeyError):
+        return ord(item[0]) # THIS IS BAD CODE
+        
 # class_names = image_datasets['train'].classes
 
 # Normalization parameters
