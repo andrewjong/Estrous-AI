@@ -61,7 +61,7 @@ def build_and_train_model(model_starter_file=False):
     # Write the meta file containing train data
     write_meta(trainable.best_val_accuracy,
                trainable.associated_train_accuracy,
-               trainable.associated_train_loss)
+               trainable.associated_train_loss, trainable.finished_epochs)
 
     # Save the model
     save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
@@ -81,13 +81,16 @@ def load_pretrained_model_weights(target_model, load_file):
 
     model_dict = target_model.state_dict()
     excluded = ['fc.weight', 'fc.bias']
-    pretrained_dict = {k: v for k,
-                       v in pretrained_dict.items() if k not in excluded}
+    pretrained_dict = {
+        k: v
+        for k, v in pretrained_dict.items() if k not in excluded
+    }
     model_dict.update(pretrained_dict)
     target_model.load_state_dict(model_dict)
 
 
-def write_meta(best_val_acc, associated_train_acc, associated_train_loss):
+def write_meta(best_val_acc, associated_train_acc, associated_train_loss,
+               finished_epochs):
     """Writes meta data about the train
 
     Arguments:
@@ -100,7 +103,8 @@ def write_meta(best_val_acc, associated_train_acc, associated_train_loss):
     meta_info.update({
         "best_val_accuracy": best_val_acc,
         "train_accuracy": associated_train_acc,
-        "train_loss": associated_train_loss
+        "train_loss": associated_train_loss,
+        "finished_epochs": finished_epochs
     })
     meta_out = os.path.join(outdir, META_FNAME)
     with open(meta_out, 'w') as out:
@@ -136,7 +140,6 @@ if __name__ == '__main__':
     parser.add_argument(
         "-e",
         "--experiment_name",
-        default='unnamed_experiment',
         help='Name of the experiment. This becomes the \
                         subdirectory that the experiment output is stored in, \
                         i.e. "experiments/my_experiment/" (default: \

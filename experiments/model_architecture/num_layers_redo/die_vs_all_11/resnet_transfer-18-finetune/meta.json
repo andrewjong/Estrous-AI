@@ -1,0 +1,19 @@
+{
+    "model": "resnet_transfer",
+    "experiment_name": "model_architecture/num_layers_redo",
+    "data_dir": "data/die_vs_all_11",
+    "num_epochs": 50,
+    "batch_size": 4,
+    "added_args": [
+        "18",
+        "finetune"
+    ],
+    "load_args": "experiments/model_architecture/num_layers_redo/4_class_11/resnet_transfer-18-finetune/",
+    "use_previous_model": false,
+    "skip_metrics": false,
+    "overwrite": false,
+    "best_val_accuracy": 0.7962085308056872,
+    "train_accuracy": 0.8794326241134752,
+    "train_loss": 0.29556602384544073,
+    "finished_epochs": 29
+}

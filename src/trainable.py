@@ -1,9 +1,25 @@
 import copy
+import signal
+import sys
 import time
 
 import torch
 from tqdm import tqdm
 
+interrupted = False
+
+def signal_handler(signal, frame):
+    global interrupted
+    if not interrupted:
+        interrupted = True
+        print("Sigint caught!\nTraining will stop after this epoch and the " +
+        "best model so far will be saved.\nOR press Ctrl-C again to quit " +
+        "immediately without saving.")
+    else:
+        print("Stopping...")
+        sys.exit(1)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 class Trainable:
     """Base class for a trainable neural network architecture.
@@ -135,6 +151,10 @@ class Trainable:
                         best_model_weights = copy.deepcopy(model.state_dict())
 
             print()  # spacer between epochs
+            self.finished_epochs = epoch + 1
+            if interrupted:
+                print("Training stopped early at", self.finished_epochs, "epochs.")
+                break
 
         # Print summary results
         time_elapsed = time.time() - start_time

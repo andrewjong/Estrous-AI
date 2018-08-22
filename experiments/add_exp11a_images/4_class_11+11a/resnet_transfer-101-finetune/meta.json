@@ -1,6 +1,6 @@
 {
     "model": "resnet_transfer",
-    "experiment_name": "add_exp11a_data",
+    "experiment_name": "add_exp11a_images",
     "data_dir": "data/4_class_11+11a",
     "num_epochs": 50,
     "added_args": [

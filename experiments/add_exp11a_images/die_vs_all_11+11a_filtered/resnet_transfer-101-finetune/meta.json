@@ -1,0 +1,19 @@
+{
+    "model": "resnet_transfer",
+    "experiment_name": "add_exp11a_images",
+    "data_dir": "data/die_vs_all_11+11a_filtered",
+    "num_epochs": 50,
+    "batch_size": 4,
+    "added_args": [
+        "101",
+        "finetune"
+    ],
+    "load_args": "experiments/data_augmentation/runtime/add_color_jitter_augment/die_vs_all_11/resnet_transfer-101-finetune/",
+    "use_previous_model": true,
+    "skip_metrics": false,
+    "overwrite": false,
+    "best_val_accuracy": 0.8785714285714286,
+    "train_accuracy": 0.8459191456903128,
+    "train_loss": 0.3559485610026062,
+    "finished_epochs": 42
+}
