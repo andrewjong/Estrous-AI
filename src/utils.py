@@ -1,13 +1,13 @@
 import os
-import torchvision
 
 import torch
 
-from torchvision import datasets, transforms
-from strconv import convert
-
-from common_constants import PHASE_ORDER
+import pretrainedmodels
 import src.custom_models
+import torchvision
+from common_constants import PHASE_ORDER
+from strconv import convert
+from torchvision import datasets, transforms
 
 
 def SORT_BY_PHASE_FN(item):
@@ -129,15 +129,21 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
         model_fn = getattr(torchvision.models, model_name)
         print(f'Model {model_name} found under torchvision.models.')
     except AttributeError:
-        print(f'Could not find model {model_name} under torchvision.models' +
-              "Looking under src.custom_models.")
+        print(f'Could not find model {model_name} under torchvision.models. ' +
+              "Looking under pretrainedmodels.")
         # else try from custom models
         try:
-            model_fn = getattr(src.custom_models, model_name)
-            print(f'Model {model_name} found under src.custom_models.')
-        # else error
-        except AttributeError as e:
-            raise e
+            model_fn = getattr(pretrainedmodels, model_name)
+            print(f'Model {model_name} found under library pretrainedmodels.')
+        except AttributeError:
+            print(f'Could not find model {model_name} under pretrainedmodels. ' +
+                  "Looking under src.custom_models.")
+            try:
+                model_fn = getattr(src.custom_models, model_name)
+                print(f'Model {model_name} found under src.custom_models.')
+            # else error
+            except AttributeError as e:
+                raise e
 
     # instatiate with kwargs
     model = model_fn(**model_kwargs)
