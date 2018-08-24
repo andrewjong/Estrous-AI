@@ -1,8 +1,8 @@
 {
     "experiment_name": "resnet101_basic_config",
-    "data_dir": "data/4_class_11",
+    "data_dir": "data/die_vs_all_11",
     "model": [
-        "resnet101",
+        "inception_v3",
         "pretrained=True"
     ],
     "optimizer": [
@@ -21,8 +21,12 @@
     "transfer_technique": "finetune",
     "num_epochs": 50,
     "batch_size": 4,
-    "load_args": null,
+    "load_args": "train_configs/resnet101_transfer_basic.json",
     "use_previous_model": false,
     "skip_metrics": false,
-    "overwrite": false
+    "overwrite": false,
+    "best_val_accuracy": 0.9194312796208531,
+    "train_accuracy": 0.8642350557244175,
+    "train_loss": 0.35570877816116675,
+    "finished_epochs": 50
 }

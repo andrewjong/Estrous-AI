@@ -53,6 +53,14 @@ parser.add_argument(
     help="Choose between finetune or fixed technique for transfer learning \
     (default: 'finetune')."
 )
+# TODO: replace the above transfer_technique arg with the code below.
+# parser.add_argument(
+#     "-f", "--finetune_layers",
+#     type=int,
+#     default=1,
+#     help="Choose how many layers to finetune. Setting 1 makes this a fixed \
+#     feature extractor (default: 1)."
+# )
 parser.add_argument(
     "-n", "--num_epochs",
     type=int, metavar="N",

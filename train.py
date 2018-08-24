@@ -77,20 +77,12 @@ def build_trainable(num_classes, model_args, optim_args, criterion_args,
                     transfer_technique=None):
     # set the num_classes arg
     # model_args.append(f'num_classes={num_classes}')
-    model = build_model(model_args)
-    num_features = model.fc.in_features
+    model = build_model(model_args, num_classes, transfer_technique)
 
     # do transfer learning if desired
     if transfer_technique == "finetune":
-        # tack on output of 4 classes
-        model.fc = torch.nn.Linear(num_features, num_classes)
         model_params = model.parameters()
     elif transfer_technique == "fixed":
-        # stop gradient tracking in previous layers to freeze them
-        for param in model.parameters():
-            param.requires_grad = False
-
-        model.fc = torch.nn.Linear(num_features, num_classes)
         model_params = model.fc.parameters()
 
     optimizer = build_attr(torch.optim, optim_args, first_arg=model_params)

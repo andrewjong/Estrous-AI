@@ -19,7 +19,8 @@ def SORT_BY_PHASE_FN(item):
 # class_names = image_datasets['train'].classes
 
 
-# Normalization parameters
+# Normalization parameters. 
+# See https://pytorch.org/docs/stable/torchvision/models.html for these values
 means = (0.485, 0.456, 0.406)
 stds = (0.229, 0.224, 0.225)
 
@@ -28,7 +29,7 @@ data_transforms = {
     'train': transforms.Compose([
         transforms.RandomAffine(degrees=30, shear=30, scale=(1, 1.75)),
         transforms.CenterCrop(950),
-        transforms.RandomResizedCrop(224),
+        transforms.RandomResizedCrop(299),
         # data augmentation, randomly flip and vertically flip across epochs
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
@@ -42,7 +43,7 @@ data_transforms = {
         transforms.Normalize(means, stds)
     ]),
     'val': transforms.Compose([
-        transforms.CenterCrop(224),
+        transforms.CenterCrop(299),
         transforms.ToTensor(),
         transforms.Normalize(means, stds)
     ]),
@@ -119,7 +120,7 @@ def make_csv_with_header(results_filepath, header):
     return results_filepath
 
 
-def build_model(model_args):
+def build_model(model_args, num_classes, transfer_technique="finetune"):
     # split into model name and model_kwargs
     model_name, model_kwargs = args_to_name_and_kwargs(model_args)
     # Load the model
@@ -140,6 +141,21 @@ def build_model(model_args):
 
     # instatiate with kwargs
     model = model_fn(**model_kwargs)
+    if "inception" in model_name:
+        model.aux_logits = False
+
+    num_features = model.fc.in_features
+    # do transfer learning if desired
+    if transfer_technique == "finetune":
+        # tack on output of 4 classes
+        model.fc = torch.nn.Linear(num_features, num_classes)
+    elif transfer_technique == "fixed":
+        # stop gradient tracking in previous layers to freeze them
+        for param in model.parameters():
+            param.requires_grad = False
+
+        model.fc = torch.nn.Linear(num_features, num_classes)
+
     return model
 
 
