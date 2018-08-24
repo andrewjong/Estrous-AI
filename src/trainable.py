@@ -8,31 +8,34 @@ from tqdm import tqdm
 
 interrupted = False
 
+
 def signal_handler(signal, frame):
     global interrupted
     if not interrupted:
         interrupted = True
         print("Sigint caught!\nTraining will stop after this epoch and the " +
-        "best model so far will be saved.\nOR press Ctrl-C again to quit " +
-        "immediately without saving.")
+              "best model so far will be saved.\nOR press Ctrl-C again to quit " +
+              "immediately without saving.")
     else:
         print("Stopping...")
         sys.exit(1)
 
+
 signal.signal(signal.SIGINT, signal_handler)
+
 
 class Trainable:
     """Base class for a trainable neural network architecture.
     Contains the model, criterion, optimizer, and scheduler as attributes.
     Also includes a train function.
-    
+
     All neural network model choices should extend this class.
     """
 
-    def __init__(self, model, criterion, optimizer, lr_scheduler):
+    def __init__(self, model, criterion, optimizer, lr_scheduler=None):
         """Initialize common train hyperparameters. These hyperparameters must
         be set
-        
+
         Arguments:
             model {torch.nn.Module} -- model structure
             criterion {torch.nn._Loss} -- loss function
@@ -47,15 +50,15 @@ class Trainable:
 
     def train(self, dataloaders, dataset_sizes, num_epochs, results_filepath):
         """Train the model based on the instance's attributes, as well as the
-        passed in arguments.
-        
+        passed in arguments. Automatically moves to GPU if available.
+
         Arguments:
             dataloaders {(DataLoader, DataLoader)}
                 -- train set dataloader, validation set dataloader
             dataset_sizes {(int, int)} -- train set size, validation set size
             num_epochs {int} -- number of epochs to trian for
             results_filepath {string} -- results filepath to output results to
-        
+
         Returns:
             [type] -- [description]
         """
@@ -82,7 +85,7 @@ class Trainable:
             for phase in ('train', 'val'):
                 if phase == 'train':
                     # update the scheduler only for train, once per epoch
-                    scheduler.step()
+                    scheduler.step() if scheduler else None
                     model.train()  # set model to train mode
                 else:
                     model.eval()  # set model to evaluation mode
@@ -132,8 +135,8 @@ class Trainable:
 
                 if phase == 'train':
                     batch_size = inputs.size(0)
-                    step_num = int((epoch + 1) * 
-                                    dataset_sizes['train'] / batch_size)
+                    step_num = int((epoch + 1) *
+                                   dataset_sizes['train'] / batch_size)
                     epoch_train_acc = epoch_acc
                     epoch_train_loss = epoch_loss
                     # write train loss and accuracy
@@ -153,7 +156,8 @@ class Trainable:
             print()  # spacer between epochs
             self.finished_epochs = epoch + 1
             if interrupted:
-                print("Training stopped early at", self.finished_epochs, "epochs.")
+                print("Training stopped early at",
+                      self.finished_epochs, "epochs.")
                 break
 
         # Print summary results

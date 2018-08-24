@@ -1,15 +1,17 @@
-import argparse
 import json
 import os
 
 import torch
+import torch.nn
+import torch.optim
 
-from train_args import train_args
 import src.utils as utils
+from src.utils import build_model, build_attr
+from src.trainable import Trainable
 from common_constants import EXPERIMENTS_ROOT, META_FNAME, MODEL_PARAMS_FNAME
 from metrics import create_all_metrics
 from predict import create_predictions
-from src.model_choices import TRAIN_MODEL_CHOICES
+from train_args import train_args
 
 TRAIN_RESULTS_FNAME = "train.csv"
 
@@ -29,9 +31,10 @@ def build_and_train_model(model_starter_file=False):
     num_classes = len(datasets["train"].classes)
 
     # Instantiate the model object
-    TrainableClass = TRAIN_MODEL_CHOICES[args.model]
     try:
-        trainable = TrainableClass(num_classes, *args.added_args)
+        trainable = build_trainable(num_classes, args.model, args.optimizer,
+                                    args.criterion, args.lr_scheduler,
+                                    transfer_technique=args.transfer_technique)
         # load in existing weights if requested
         if model_starter_file:
             load_pretrained_model_weights(trainable.model, model_starter_file)
@@ -67,6 +70,37 @@ def build_and_train_model(model_starter_file=False):
     # Save the model
     save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
     torch.save(trained_model.state_dict(), save_path)
+
+
+def build_trainable(num_classes, model_args, optim_args, criterion_args,
+                    lr_scheduler_args,
+                    transfer_technique=None):
+    # set the num_classes arg
+    # model_args.append(f'num_classes={num_classes}')
+    model = build_model(model_args)
+    num_features = model.fc.in_features
+
+    # do transfer learning if desired
+    if transfer_technique == "finetune":
+        # tack on output of 4 classes
+        model.fc = torch.nn.Linear(num_features, num_classes)
+        model_params = model.parameters()
+    elif transfer_technique == "fixed":
+        # stop gradient tracking in previous layers to freeze them
+        for param in model.parameters():
+            param.requires_grad = False
+
+        model.fc = torch.nn.Linear(num_features, num_classes)
+        model_params = model.fc.parameters()
+
+    optimizer = build_attr(torch.optim, optim_args, first_arg=model_params)
+    criterion = build_attr(torch.nn, criterion_args)
+    lr_scheduler = build_attr(torch.optim.lr_scheduler,
+                              lr_scheduler_args, first_arg=optimizer)
+
+    trainable = Trainable(model, criterion, optimizer, lr_scheduler)
+    return trainable
+
 
 
 def load_pretrained_model_weights(target_model, load_file):
@@ -132,8 +166,8 @@ if __name__ == '__main__':
     global args
     args = train_args
     print()
-    print(
-        f'*** BEGINNING EXPERIMENT: "{args.experiment_name}" ***', end="\n\n")
+    print(f'*** BEGINNING EXPERIMENT: "{args.experiment_name}" ***',
+          end="\n\n")
 
     # load args from a previous train session if requested
     if args.load_args:
@@ -158,8 +192,6 @@ if __name__ == '__main__':
                 print(f'  {common_arg}: {load_value}')
         print()
 
-    # some setup for our eventual output directory name
-    model_name = "-".join([args.model] + args.added_args)
     # get rid of the extra slash if the user put one
     if args.data_dir[-1] == "/" or args.data_dir[-1] == "\\":
         args.data_dir = args.data_dir[:-1]
@@ -167,7 +199,7 @@ if __name__ == '__main__':
     # Make the output directory for the experiment
     global outdir
     outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name, dataset_name,
-                          model_name)
+                          args.model[0])
 
     if args.use_previous_model:
         prev_model_file = os.path.join(args.load_args, "model.pth")

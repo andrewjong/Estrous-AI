@@ -1,18 +1,23 @@
 import os
+import torchvision
 
 import torch
 
 from torchvision import datasets, transforms
+from strconv import convert
 
 from common_constants import PHASE_ORDER
+import src.custom_models
+
 
 def SORT_BY_PHASE_FN(item):
     try:
         return PHASE_ORDER[item[0].lower()]
     except(KeyError):
-        return ord(item[0]) # THIS IS BAD CODE
-        
+        return ord(item[0])  # THIS IS BAD CODE
+
 # class_names = image_datasets['train'].classes
+
 
 # Normalization parameters
 means = (0.485, 0.456, 0.406)
@@ -112,3 +117,62 @@ def make_csv_with_header(results_filepath, header):
     with open(results_filepath, 'w') as f:
         f.write(header + "\n")
     return results_filepath
+
+
+def build_model(model_args):
+    # split into model name and model_kwargs
+    model_name, model_kwargs = args_to_name_and_kwargs(model_args)
+    # Load the model
+    # first try from torchvision
+    try:
+        model_fn = getattr(torchvision.models, model_name)
+        print(f'Model {model_name} found under torchvision.models.')
+    except AttributeError:
+        print(f'Could not find model {model_name} under torchvision.models' +
+              "Looking under src.custom_models.")
+        # else try from custom models
+        try:
+            model_fn = getattr(src.custom_models, model_name)
+            print(f'Model {model_name} found under src.custom_models.')
+        # else error
+        except AttributeError as e:
+            raise e
+
+    # instatiate with kwargs
+    model = model_fn(**model_kwargs)
+    return model
+
+
+def build_attr(module, attr_args, first_arg=None):
+    attr_name, attr_kwargs = args_to_name_and_kwargs(attr_args)
+    attr_fn = getattr(module, attr_name)
+    attribute = attr_fn(
+        first_arg, **attr_kwargs) if first_arg else attr_fn(**attr_kwargs)
+    return attribute
+
+
+def args_to_name_and_kwargs(model_and_kwargs_list):
+    name = model_and_kwargs_list[0]
+    kwargs = model_and_kwargs_list[1:]
+    kwargs = make_kwargs_dict(kwargs)
+    return name, kwargs
+
+
+def make_kwargs_dict(kwargs_list):
+    """Transforms a list of keyword arguments into a keyword arguments
+    dictionary. Splits on the "=" symbol.
+    E.g. ["first=1", "second=2", "third=3"] gets transformed into
+    {"first": 1, "second": 2, "third": 3}.
+
+    Arguments:
+        kwargs_list {list} -- list of keyword arguments
+
+    Returns:
+        dict -- dictionary of keyword arguments
+    """
+    kwargs_dict = {
+        # key -> value converted as the correct type
+        kwarg.split('=')[0]: convert(kwarg.split('=')[1])
+        for kwarg in kwargs_list
+    }
+    return kwargs_dict
