@@ -24,35 +24,37 @@ def SORT_BY_PHASE_FN(item):
 means = (0.485, 0.456, 0.406)
 stds = (0.229, 0.224, 0.225)
 
+def make_transform_dict(image_size=224):
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.RandomAffine(degrees=30, shear=30, scale=(1, 1.75)),
+            transforms.CenterCrop(950),
+            transforms.RandomResizedCrop(image_size),
+            # data augmentation, randomly flip and vertically flip across epochs
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            # ColorJitter values chosen somewhat arbitrarily by what "looked" good
+            # possibly something to optimize
+            # transforms.ColorJitter(brightness=0.20, saturation=0.70, contrast=0.5,
+            #                        hue=0.10),
+            # convert to PyTorch tensor
+            transforms.ToTensor(),
+            # normalize
+            transforms.Normalize(means, stds)
+        ]),
+        'val': transforms.Compose([
+            transforms.CenterCrop(image_size),
+            transforms.ToTensor(),
+            transforms.Normalize(means, stds)
+        ]),
+    }
+    # set test and val to same transform
+    data_transforms['test'] = data_transforms['val']
+    return data_transforms
 
-data_transforms = {
-    'train': transforms.Compose([
-        transforms.RandomAffine(degrees=30, shear=30, scale=(1, 1.75)),
-        transforms.CenterCrop(950),
-        transforms.RandomResizedCrop(299),
-        # data augmentation, randomly flip and vertically flip across epochs
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        # ColorJitter values chosen somewhat arbitrarily by what "looked" good
-        # possibly something to optimize
-        # transforms.ColorJitter(brightness=0.20, saturation=0.70, contrast=0.5,
-        #                        hue=0.10),
-        # convert to PyTorch tensor
-        transforms.ToTensor(),
-        # normalize
-        transforms.Normalize(means, stds)
-    ]),
-    'val': transforms.Compose([
-        transforms.CenterCrop(299),
-        transforms.ToTensor(),
-        transforms.Normalize(means, stds)
-    ]),
-}
-# set test and val to same transform
-data_transforms['test'] = data_transforms['val']
 
-
-def get_datasets_and_loaders(data_dir, *subsets, include_paths=False,
+def get_datasets_and_loaders(data_dir, *subsets, include_paths=False, 
+                            image_size=224,
                              batch_size=4, shuffle=True):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
@@ -67,6 +69,7 @@ def get_datasets_and_loaders(data_dir, *subsets, include_paths=False,
     Returns:
         tuple -- datasets, dataloaders
     """
+    data_transforms = make_transform_dict(image_size)
 
     # the dataset we use is either the normal ImageFolder, or our custom
     #   ImageFolder

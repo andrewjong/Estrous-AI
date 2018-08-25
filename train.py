@@ -21,8 +21,10 @@ def build_and_train_model(model_starter_file=False):
     it on the chosen dataset.
     """
     # Obtain train and validation datasets and dataloaders
+    image_size = 299 if "inception" in args.model[0] else 224
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        args.data_dir, "train", "val", batch_size=args.batch_size)
+        args.data_dir, "train", "val", batch_size=args.batch_size, 
+        image_size=image_size)
     dataset_sizes = {
         subset: len(datasets[subset])
         for subset in ('train', 'val')
