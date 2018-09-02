@@ -6,11 +6,11 @@ import torch.nn
 import torch.optim
 
 import src.utils as utils
-from src.utils import build_model, build_attr
-from src.trainable import Trainable
-from common_constants import EXPERIMENTS_ROOT, META_FNAME, MODEL_PARAMS_FNAME
+from common_constants import EXPERIMENTS_ROOT
 from metrics import create_all_metrics
 from predict import create_predictions
+from src.trainable import Trainable
+from src.utils import build_attr, build_model
 from train_args import train_args
 
 TRAIN_RESULTS_FNAME = "train.csv"
@@ -23,12 +23,8 @@ def build_and_train_model(model_starter_file=False):
     # Obtain train and validation datasets and dataloaders
     image_size = 299 if "inception" in args.model[0] else 224
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        args.data_dir, "train", "val", batch_size=args.batch_size, 
+        args.data_dir, "train", "val", batch_size=args.batch_size,
         image_size=image_size)
-    dataset_sizes = {
-        subset: len(datasets[subset])
-        for subset in ('train', 'val')
-    }
 
     num_classes = len(datasets["train"].classes)
 
@@ -41,11 +37,9 @@ def build_and_train_model(model_starter_file=False):
         if model_starter_file:
             load_pretrained_model_weights(trainable.model, model_starter_file)
     except TypeError as e:
-        print("Caught TypeError when instantiating model class. Make sure " +
-              "all required model arguments are passed, in order, using the " +
-              "-a flag.\n")
-        print(e)
-        exit(1)
+        print("Caught TypeError when instantiating trainable. Make sure " +
+              "all required arguments are passed.\n")
+        raise e
 
     # Make results dir path. Check if it already exists.
     try:
@@ -62,16 +56,8 @@ def build_and_train_model(model_starter_file=False):
     # make the results file
     results_filepath = prepare_results_file()
     # Train
-    trained_model = trainable.train(dataloaders, dataset_sizes,
-                                    args.num_epochs, results_filepath)
-    # Write the meta file containing train data
-    write_meta(trainable.best_val_accuracy,
-               trainable.associated_train_accuracy,
-               trainable.associated_train_loss, trainable.finished_epochs)
-
-    # Save the model
-    save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
-    torch.save(trained_model.state_dict(), save_path)
+    trainable.train(dataloaders, results_filepath)
+    trainable.save(outdir, extra_meta=vars(args))
 
 
 def build_trainable(num_classes, model_args, optim_args, criterion_args,
@@ -96,7 +82,6 @@ def build_trainable(num_classes, model_args, optim_args, criterion_args,
     return trainable
 
 
-
 def load_pretrained_model_weights(target_model, load_file):
     """Load pretrained model weights except for the last fully connected layer
 
@@ -116,30 +101,6 @@ def load_pretrained_model_weights(target_model, load_file):
     }
     model_dict.update(pretrained_dict)
     target_model.load_state_dict(model_dict)
-
-
-def write_meta(best_val_acc, associated_train_acc, associated_train_loss,
-               finished_epochs):
-    """Writes meta data about the train
-
-    Arguments:
-        best_val_acc {[type]} -- [description]
-        associated_train_acc {[type]} -- [description]
-        associated_train_loss {[type]} -- [description]
-    """
-    meta_info = vars(args)
-    # add extra values to the dictionary
-    meta_info.update({
-        "best_val_accuracy": best_val_acc,
-        "train_accuracy": associated_train_acc,
-        "train_loss": associated_train_loss,
-        "finished_epochs": finished_epochs
-    })
-    meta_out = os.path.join(outdir, META_FNAME)
-    with open(meta_out, 'w') as out:
-        json.dump(meta_info, out, indent=4)
-    # TODO: check to see if training finished or not. if it didn't, record
-    # where to pick up to finish training
 
 
 def prepare_results_file():

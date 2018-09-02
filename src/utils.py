@@ -53,8 +53,8 @@ def make_transform_dict(image_size=224):
     return data_transforms
 
 
-def get_datasets_and_loaders(data_dir, *subsets, include_paths=False, 
-                            image_size=224,
+def get_datasets_and_loaders(data_dir, *subsets, include_paths=False,
+                             image_size=224,
                              batch_size=4, shuffle=True):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
@@ -128,6 +128,7 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
     model_name, model_kwargs = args_to_name_and_kwargs(model_args)
     # Load the model
     # first try from torchvision
+    use_last_linear = False
     try:
         model_fn = getattr(torchvision.models, model_name)
         print(f'Model {model_name} found under torchvision.models.')
@@ -138,6 +139,7 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
         try:
             model_fn = getattr(pretrainedmodels, model_name)
             print(f'Model {model_name} found under library pretrainedmodels.')
+            use_last_linear = True
         except AttributeError:
             print(f'Could not find model {model_name} under pretrainedmodels. ' +
                   "Looking under src.custom_models.")
@@ -152,6 +154,8 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
     model = model_fn(**model_kwargs)
     if "inception" in model_name:
         model.aux_logits = False
+    if use_last_linear:
+        model.fc = model.last_linear
 
     num_features = model.fc.in_features
     # do transfer learning if desired
@@ -168,7 +172,9 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
     return model
 
 
-def build_attr(module, attr_args, first_arg=None):
+def build_attr(module, attr_args=None, first_arg=None):
+    if attr_args is None:
+        return None
     attr_name, attr_kwargs = args_to_name_and_kwargs(attr_args)
     attr_fn = getattr(module, attr_name)
     attribute = attr_fn(

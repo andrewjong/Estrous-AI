@@ -1,10 +1,15 @@
 import copy
+import gc
+import json
+import os
 import signal
 import sys
 import time
 
 import torch
 from tqdm import tqdm
+
+from common_constants import META_FNAME, MODEL_PARAMS_FNAME
 
 interrupted = False
 
@@ -48,23 +53,54 @@ class Trainable:
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
 
-    def train(self, dataloaders, dataset_sizes, num_epochs, results_filepath):
+    def save(self, outdir, extra_meta=None):
+        """Saves the model weights (via state dict) and meta info about how the
+         model was trained to the specified output directory.
+
+        Arguments:
+            outdir {string} -- directory to output files
+
+        Keyword Arguments:
+            extra_meta {dict} -- extra information to put in the meta file
+            (default: {None})
+        """
+        model_file = os.path.join(outdir, MODEL_PARAMS_FNAME)
+        torch.save(self.model.state_dict(), model_file)
+        meta_dict = {
+            "best_val_accuracy": self.best_val_accuracy,
+            "train_accuracy": self.associated_train_accuracy,
+            "train_loss": self.associated_train_loss,
+            "finished_epochs": self.finished_epochs
+        }
+        if extra_meta:
+            meta_dict = extra_meta.update(meta_dict)
+
+        meta_out = os.path.join(outdir, META_FNAME)
+        with open(meta_out, 'w') as out:
+            json.dump(meta_dict, out, indent=4)
+
+    def train(self, dataloaders, num_epochs,
+              results_filepath=None):
         """Train the model based on the instance's attributes, as well as the
         passed in arguments. Automatically moves to GPU if available.
 
         Arguments:
             dataloaders {(DataLoader, DataLoader)}
                 -- train set dataloader, validation set dataloader
-            dataset_sizes {(int, int)} -- train set size, validation set size
             num_epochs {int} -- number of epochs to trian for
             results_filepath {string} -- results filepath to output results to
+            (default: None)
 
         Returns:
-            [type] -- [description]
+            float -- best validation accuracy of the model
         """
         model, criterion, optimizer, scheduler = (self.model, self.criterion,
                                                   self.optimizer,
                                                   self.lr_scheduler)
+        dataset_sizes = {
+            phase: len(loader) * loader.batch_size
+            for phase, loader in dataloaders.items()
+        }
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
@@ -140,12 +176,14 @@ class Trainable:
                     epoch_train_acc = epoch_acc
                     epoch_train_loss = epoch_loss
                     # write train loss and accuracy
-                    with open(results_filepath, 'a') as f:
-                        f.write(f'{step_num},{epoch_loss},{epoch_acc},')
+                    if results_filepath:
+                        with open(results_filepath, 'a') as f:
+                            f.write(f'{step_num},{epoch_loss},{epoch_acc},')
                 elif phase == 'val':
                     # write validation accuracy
-                    with open(results_filepath, 'a') as f:
-                        f.write(f'{epoch_acc}\n')
+                    if results_filepath:
+                        with open(results_filepath, 'a') as f:
+                            f.write(f'{epoch_acc}\n')
                     # deep copy the model if we perform better
                     if epoch_acc > best_val_acc:
                         best_val_acc = epoch_acc
@@ -159,6 +197,7 @@ class Trainable:
                 print("Training stopped early at",
                       self.finished_epochs, "epochs.")
                 break
+        gc.collect()  # trigger the gargabe collector to free up memory
 
         # Print summary results
         time_elapsed = time.time() - start_time
@@ -168,11 +207,11 @@ class Trainable:
         print(f'Associated train accuracy: {associated_train_acc:.4f}')
         print(f'Associated train loss: {associated_train_loss:.4f}')
 
+        # load best model weights
+        model.load_state_dict(best_model_weights)
         # Store best scores, convert torch tensor to float
         self.best_val_accuracy = float(best_val_acc)
         self.associated_train_accuracy = float(associated_train_acc)
         self.associated_train_loss = float(associated_train_loss)
 
-        # load best model weights and return the model
-        model.load_state_dict(best_model_weights)
-        return model
+        return best_val_acc
