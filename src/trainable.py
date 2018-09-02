@@ -80,7 +80,7 @@ class Trainable:
             json.dump(meta_dict, out, indent=4)
 
     def train(self, dataloaders, num_epochs,
-              results_filepath=None):
+              results_filepath=None, early_stop=6):
         """Train the model based on the instance's attributes, as well as the
         passed in arguments. Automatically moves to GPU if available.
 
@@ -90,6 +90,9 @@ class Trainable:
             num_epochs {int} -- number of epochs to trian for
             results_filepath {string} -- results filepath to output results to
             (default: None)
+            early_stop {int} -- stop training early if validation accuracy does
+            not improve for {early_stop} epochs. potentially saves time
+            (default: 6)
 
         Returns:
             float -- best validation accuracy of the model
@@ -111,6 +114,7 @@ class Trainable:
 
         start_time = time.time()  # to keep track of elapsed time
 
+        stop_counter = 0
         # Train
         # summary: for each epoch, train on the train set, then get
         for epoch in range(num_epochs):
@@ -186,10 +190,16 @@ class Trainable:
                             f.write(f'{epoch_acc}\n')
                     # deep copy the model if we perform better
                     if epoch_acc > best_val_acc:
+                        stop_counter = 0
                         best_val_acc = epoch_acc
                         associated_train_acc = epoch_train_acc
                         associated_train_loss = epoch_train_loss
                         best_model_weights = copy.deepcopy(model.state_dict())
+                    else:
+                        stop_counter += 1
+                        print(f'Chances for best: {stop_counter} / {early_stop}')
+                        if stop_counter >= early_stop:
+                            interrupted = True
 
             print()  # spacer between epochs
             self.finished_epochs = epoch + 1
