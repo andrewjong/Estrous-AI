@@ -56,7 +56,8 @@ def build_and_train_model(model_starter_file=False):
     # make the results file
     results_filepath = prepare_results_file()
     # Train
-    trainable.train(dataloaders, results_filepath)
+    trainable.train(dataloaders, args.num_epochs, 
+                    results_filepath=results_filepath)
     trainable.save(outdir, extra_meta=vars(args))
 
 

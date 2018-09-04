@@ -11,23 +11,6 @@ from tqdm import tqdm
 
 from common_constants import META_FNAME, MODEL_PARAMS_FNAME
 
-interrupted = False
-
-
-def signal_handler(signal, frame):
-    global interrupted
-    if not interrupted:
-        interrupted = True
-        print("Sigint caught!\nTraining will stop after this epoch and the " +
-              "best model so far will be saved.\nOR press Ctrl-C again to quit " +
-              "immediately without saving.")
-    else:
-        print("Stopping...")
-        sys.exit(1)
-
-
-signal.signal(signal.SIGINT, signal_handler)
-
 
 class Trainable:
     """Base class for a trainable neural network architecture.
@@ -52,6 +35,20 @@ class Trainable:
         self.criterion = criterion
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
+
+        self.interrupted = False
+        signal.signal(signal.SIGINT, self.handle_interrupt)
+
+    def handle_interrupt(self, signal, frame):
+        if not self.interrupted:
+            self.interrupted = True
+            print(
+                "Sigint caught!\nTraining will stop after this epoch and the " +
+                "best model so far will be saved.\nOR press Ctrl-C again to quit "
+                + "immediately without saving.")
+        else:
+            print("Stopping...")
+            sys.exit(1)
 
     def save(self, outdir, extra_meta=None):
         """Saves the model weights (via state dict) and meta info about how the
@@ -79,8 +76,12 @@ class Trainable:
         with open(meta_out, 'w') as out:
             json.dump(meta_dict, out, indent=4)
 
-    def train(self, dataloaders, num_epochs,
-              results_filepath=None, early_stop=6):
+    def train(self,
+              dataloaders,
+              num_epochs,
+              results_filepath=None,
+              early_stop=6,
+              verbose=True):
         """Train the model based on the instance's attributes, as well as the
         passed in arguments. Automatically moves to GPU if available.
 
@@ -118,8 +119,9 @@ class Trainable:
         # Train
         # summary: for each epoch, train on the train set, then get
         for epoch in range(num_epochs):
-            print(f'Epoch {epoch + 1}/{num_epochs}')
-            print("-" * 10)
+            if vebose:
+                print(f'Epoch {epoch + 1}/{num_epochs}')
+                print("-" * 10)
 
             # during the epoch, run both train and evaluation
             for phase in ('train', 'val'):
@@ -135,8 +137,11 @@ class Trainable:
                 running_corrects = 0
 
                 # progress bar for each epoch phase
-                with tqdm(desc=phase.capitalize(), total=dataset_sizes[phase],
-                          leave=False, unit="images") as pbar:
+                with tqdm(
+                        desc=f'Epoch {epoch + 1}: ' + phase.capitalize(),
+                        total=dataset_sizes[phase],
+                        leave=False,
+                        unit="images") as pbar:
                     # iterate over data
                     for inputs, labels in dataloaders[phase]:
                         inputs = inputs.to(device)
@@ -159,8 +164,8 @@ class Trainable:
                         # we multiply by input size, because loss.item() is
                         # only for a single example in our batch.
                         running_loss += loss.item() * inputs.size(0)
-                        running_corrects += torch.sum(predictions ==
-                                                      labels.data)
+                        running_corrects += torch.sum(
+                            predictions == labels.data)
 
                         # update pbar with size of our batch
                         pbar.update(inputs.size(0))
@@ -170,13 +175,14 @@ class Trainable:
                 # accuracy is also the average of the corrects
                 epoch_acc = running_corrects.double() / dataset_sizes[phase]
                 # print results for this epoch phase
-                print(f'{phase.capitalize()} ' +
-                      f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
+                if verbose:
+                    print(f'{phase.capitalize()} ' +
+                          f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
 
                 if phase == 'train':
                     batch_size = inputs.size(0)
-                    step_num = int((epoch + 1) *
-                                   dataset_sizes['train'] / batch_size)
+                    step_num = int(
+                        (epoch + 1) * dataset_sizes['train'] / batch_size)
                     epoch_train_acc = epoch_acc
                     epoch_train_loss = epoch_loss
                     # write train loss and accuracy
@@ -197,15 +203,16 @@ class Trainable:
                         best_model_weights = copy.deepcopy(model.state_dict())
                     else:
                         stop_counter += 1
-                        print(f'Chances for best: {stop_counter} / {early_stop}')
+                        print(
+                            f'Chances for best: {stop_counter} / {early_stop}')
                         if stop_counter >= early_stop:
-                            interrupted = True
+                            self.interrupted = True
 
             print()  # spacer between epochs
             self.finished_epochs = epoch + 1
-            if interrupted:
-                print("Training stopped early at",
-                      self.finished_epochs, "epochs.")
+            if self.interrupted:
+                print("Training stopped early at", self.finished_epochs,
+                      "epochs.")
                 break
         gc.collect()  # trigger the gargabe collector to free up memory
 
