@@ -119,7 +119,7 @@ class Trainable:
         # Train
         # summary: for each epoch, train on the train set, then get
         for epoch in range(num_epochs):
-            if vebose:
+            if verbose:
                 print(f'Epoch {epoch + 1}/{num_epochs}')
                 print("-" * 10)
 
@@ -137,8 +137,11 @@ class Trainable:
                 running_corrects = 0
 
                 # progress bar for each epoch phase
+                desc = f'Epoch {epoch + 1}, {phase.capitalize()}'
+                if not verbose:
+                    desc += f', best val={best_val_acc:4f}'
                 with tqdm(
-                        desc=f'Epoch {epoch + 1}: ' + phase.capitalize(),
+                        desc=desc,
                         total=dataset_sizes[phase],
                         leave=False,
                         unit="images") as pbar:
@@ -203,12 +206,16 @@ class Trainable:
                         best_model_weights = copy.deepcopy(model.state_dict())
                     else:
                         stop_counter += 1
-                        print(
-                            f'Chances for best: {stop_counter} / {early_stop}')
+                        if verbose:
+                            print(
+                                f'Chances for best: {stop_counter} / {early_stop}'
+                            )
                         if stop_counter >= early_stop:
                             self.interrupted = True
 
-            print()  # spacer between epochs
+            if verbose:
+                print()  # spacer between epochs
+
             self.finished_epochs = epoch + 1
             if self.interrupted:
                 print("Training stopped early at", self.finished_epochs,

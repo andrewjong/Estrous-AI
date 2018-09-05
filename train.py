@@ -11,7 +11,6 @@ from metrics import create_all_metrics
 from predict import create_predictions
 from src.trainable import Trainable
 from src.utils import build_attr, build_model
-from train_args import train_args
 
 TRAIN_RESULTS_FNAME = "train.csv"
 
@@ -104,7 +103,7 @@ def load_pretrained_model_weights(target_model, load_file):
     target_model.load_state_dict(model_dict)
 
 
-def prepare_results_file():
+def prepare_results_file(results_filepath=None):
     """Creates a file (overwrites if existing) for recording train results
     using the results path specified in parse_args.
     Adds in a header for the file as "epoch,loss,train_acc,val_acc"
@@ -112,13 +111,15 @@ def prepare_results_file():
     Returns:
         string -- path of the created file
     """
-    results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
+    if not results_filepath:
+        results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
     header = "steps,loss,train_acc,val_acc"
     results_filepath = utils.make_csv_with_header(results_filepath, header)
     return results_filepath
 
 
 if __name__ == '__main__':
+    from train_args import train_args
     global args
     args = train_args
     print()

@@ -118,6 +118,7 @@ def make_csv_with_header(results_filepath, header):
         string -- path of the created file
     """
     # write the csv header
+    os.makedirs(os.path.dirname(results_filepath), exist_ok=True)
     with open(results_filepath, 'w') as f:
         f.write(header + "\n")
     return results_filepath
@@ -130,18 +131,18 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
     # first try from torchvision
     use_last_linear = False
     try:
-        model_fn = getattr(torchvision.models, model_name)
-        print(f'Model {model_name} found under torchvision.models.')
+        model_fn = getattr(pretrainedmodels, model_name)
+        print(f'Model {model_name} found under library pretrainedmodels.')
+        use_last_linear = True
     except AttributeError:
-        print(f'Could not find model {model_name} under torchvision.models. ' +
-              "Looking under pretrainedmodels.")
-        # else try from custom models
+        print(f'Could not find model {model_name} under pretrainedmodels. ' +
+              "Looking under torchvision.models.")
         try:
-            model_fn = getattr(pretrainedmodels, model_name)
-            print(f'Model {model_name} found under library pretrainedmodels.')
-            use_last_linear = True
+            model_fn = getattr(torchvision.models, model_name)
+            print(f'Model {model_name} found under torchvision.models.')
+        # else try from custom models
         except AttributeError:
-            print(f'Could not find model {model_name} under pretrainedmodels. ' +
+            print(f'Could not find model {model_name} under torchvision.models. ' +
                   "Looking under src.custom_models.")
             try:
                 model_fn = getattr(src.custom_models, model_name)
