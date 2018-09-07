@@ -24,6 +24,26 @@ def SORT_BY_PHASE_FN(item):
 means = (0.485, 0.456, 0.406)
 stds = (0.229, 0.224, 0.225)
 
+
+def determine_image_size(model_name):
+    """Get the input size for a particlar model. These values are hardcoded
+    and based on the code frameworks. Possibly subject to change.
+    
+    Arguments:
+        model_name {string} -- name of the model
+    
+    Returns:
+        int -- input size in pixels
+    """
+
+    if 'inception' in model_name:
+        return 299
+    elif 'nasnetalarge' in model_name:
+        return 331
+    else:
+        return 224
+
+
 def make_transform_dict(image_size=224):
     data_transforms = {
         'train': transforms.Compose([
