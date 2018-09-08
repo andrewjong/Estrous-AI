@@ -5,3 +5,4 @@ data/
 models
 models/
 *.pth
+.ipynb_checkpoints
