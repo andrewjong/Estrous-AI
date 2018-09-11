@@ -1,4 +1,7 @@
 import copy
+import gc
+import json
+import os
 import signal
 import sys
 import time
@@ -6,33 +9,21 @@ import time
 import torch
 from tqdm import tqdm
 
-interrupted = False
+from common_constants import META_FNAME, MODEL_PARAMS_FNAME
 
-def signal_handler(signal, frame):
-    global interrupted
-    if not interrupted:
-        interrupted = True
-        print("Sigint caught!\nTraining will stop after this epoch and the " +
-        "best model so far will be saved.\nOR press Ctrl-C again to quit " +
-        "immediately without saving.")
-    else:
-        print("Stopping...")
-        sys.exit(1)
-
-signal.signal(signal.SIGINT, signal_handler)
 
 class Trainable:
     """Base class for a trainable neural network architecture.
     Contains the model, criterion, optimizer, and scheduler as attributes.
     Also includes a train function.
-    
+
     All neural network model choices should extend this class.
     """
 
-    def __init__(self, model, criterion, optimizer, lr_scheduler):
+    def __init__(self, model, criterion, optimizer, lr_scheduler=None):
         """Initialize common train hyperparameters. These hyperparameters must
         be set
-        
+
         Arguments:
             model {torch.nn.Module} -- model structure
             criterion {torch.nn._Loss} -- loss function
@@ -45,23 +36,75 @@ class Trainable:
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
 
-    def train(self, dataloaders, dataset_sizes, num_epochs, results_filepath):
+        self.interrupted = False
+        signal.signal(signal.SIGINT, self.handle_interrupt)
+
+    def handle_interrupt(self, signal, frame):
+        if not self.interrupted:
+            self.interrupted = True
+            print(
+                "Sigint caught!\nTraining will stop after this epoch and the " +
+                "best model so far will be saved.\nOR press Ctrl-C again to quit "
+                + "immediately without saving.")
+        else:
+            print("Stopping...")
+            sys.exit(1)
+
+    def save(self, outdir, extra_meta=None):
+        """Saves the model weights (via state dict) and meta info about how the
+         model was trained to the specified output directory.
+
+        Arguments:
+            outdir {string} -- directory to output files
+
+        Keyword Arguments:
+            extra_meta {dict} -- extra information to put in the meta file
+            (default: {None})
+        """
+        model_file = os.path.join(outdir, MODEL_PARAMS_FNAME)
+        torch.save(self.model.state_dict(), model_file)
+        meta_dict = {
+            "best_val_accuracy": self.best_val_accuracy,
+            "train_accuracy": self.associated_train_accuracy,
+            "train_loss": self.associated_train_loss,
+            "finished_epochs": self.finished_epochs
+        }
+        if extra_meta:
+            meta_dict = extra_meta.update(meta_dict)
+
+        meta_out = os.path.join(outdir, META_FNAME)
+        with open(meta_out, 'w') as out:
+            json.dump(meta_dict, out, indent=4)
+
+    def train(self,
+              dataloaders,
+              num_epochs,
+              results_filepath=None,
+              early_stop=6,
+              verbose=True):
         """Train the model based on the instance's attributes, as well as the
-        passed in arguments.
-        
+        passed in arguments. Automatically moves to GPU if available.
+
         Arguments:
             dataloaders {(DataLoader, DataLoader)}
                 -- train set dataloader, validation set dataloader
-            dataset_sizes {(int, int)} -- train set size, validation set size
             num_epochs {int} -- number of epochs to trian for
             results_filepath {string} -- results filepath to output results to
-        
+            (default: None)
+            early_stop {int} -- stop training early if validation accuracy does
+            not improve for {early_stop} epochs. potentially saves time
+            (default: 6)
+
         Returns:
-            [type] -- [description]
+            float -- best validation accuracy of the model
         """
         model, criterion, optimizer, scheduler = (self.model, self.criterion,
                                                   self.optimizer,
                                                   self.lr_scheduler)
+        dataset_sizes = {
+            phase: len(loader) * loader.batch_size
+            for phase, loader in dataloaders.items()
+        }
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         model = model.to(device)
@@ -72,17 +115,19 @@ class Trainable:
 
         start_time = time.time()  # to keep track of elapsed time
 
+        stop_counter = 0
         # Train
         # summary: for each epoch, train on the train set, then get
         for epoch in range(num_epochs):
-            print(f'Epoch {epoch + 1}/{num_epochs}')
-            print("-" * 10)
+            if verbose:
+                print(f'Epoch {epoch + 1}/{num_epochs}')
+                print("-" * 10)
 
             # during the epoch, run both train and evaluation
             for phase in ('train', 'val'):
                 if phase == 'train':
                     # update the scheduler only for train, once per epoch
-                    scheduler.step()
+                    scheduler.step() if scheduler else None
                     model.train()  # set model to train mode
                 else:
                     model.eval()  # set model to evaluation mode
@@ -92,8 +137,14 @@ class Trainable:
                 running_corrects = 0
 
                 # progress bar for each epoch phase
-                with tqdm(desc=phase.capitalize(), total=dataset_sizes[phase],
-                          leave=False, unit="images") as pbar:
+                desc = f'Epoch {epoch + 1}, {phase.capitalize()}'
+                if not verbose:
+                    desc += f', best val={best_val_acc:4f}'
+                with tqdm(
+                        desc=desc,
+                        total=dataset_sizes[phase],
+                        leave=False,
+                        unit="images") as pbar:
                     # iterate over data
                     for inputs, labels in dataloaders[phase]:
                         inputs = inputs.to(device)
@@ -116,8 +167,8 @@ class Trainable:
                         # we multiply by input size, because loss.item() is
                         # only for a single example in our batch.
                         running_loss += loss.item() * inputs.size(0)
-                        running_corrects += torch.sum(predictions ==
-                                                      labels.data)
+                        running_corrects += torch.sum(
+                            predictions == labels.data)
 
                         # update pbar with size of our batch
                         pbar.update(inputs.size(0))
@@ -127,34 +178,50 @@ class Trainable:
                 # accuracy is also the average of the corrects
                 epoch_acc = running_corrects.double() / dataset_sizes[phase]
                 # print results for this epoch phase
-                print(f'{phase.capitalize()} ' +
-                      f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
+                if verbose:
+                    print(f'{phase.capitalize()} ' +
+                          f'Loss: {epoch_loss:.4f}, Acc: {epoch_acc:.4f}')
 
                 if phase == 'train':
                     batch_size = inputs.size(0)
-                    step_num = int((epoch + 1) * 
-                                    dataset_sizes['train'] / batch_size)
+                    step_num = int(
+                        (epoch + 1) * dataset_sizes['train'] / batch_size)
                     epoch_train_acc = epoch_acc
                     epoch_train_loss = epoch_loss
                     # write train loss and accuracy
-                    with open(results_filepath, 'a') as f:
-                        f.write(f'{step_num},{epoch_loss},{epoch_acc},')
+                    if results_filepath:
+                        with open(results_filepath, 'a') as f:
+                            f.write(f'{step_num},{epoch_loss},{epoch_acc},')
                 elif phase == 'val':
                     # write validation accuracy
-                    with open(results_filepath, 'a') as f:
-                        f.write(f'{epoch_acc}\n')
+                    if results_filepath:
+                        with open(results_filepath, 'a') as f:
+                            f.write(f'{epoch_acc}\n')
                     # deep copy the model if we perform better
                     if epoch_acc > best_val_acc:
+                        stop_counter = 0
                         best_val_acc = epoch_acc
                         associated_train_acc = epoch_train_acc
                         associated_train_loss = epoch_train_loss
                         best_model_weights = copy.deepcopy(model.state_dict())
+                    else:
+                        stop_counter += 1
+                        if verbose:
+                            print(
+                                f'Chances for best: {stop_counter} / {early_stop}'
+                            )
+                        if stop_counter >= early_stop:
+                            self.interrupted = True
 
-            print()  # spacer between epochs
+            if verbose:
+                print()  # spacer between epochs
+
             self.finished_epochs = epoch + 1
-            if interrupted:
-                print("Training stopped early at", self.finished_epochs, "epochs.")
+            if self.interrupted:
+                print("Training stopped early at", self.finished_epochs,
+                      "epochs.")
                 break
+        gc.collect()  # trigger the gargabe collector to free up memory
 
         # Print summary results
         time_elapsed = time.time() - start_time
@@ -164,11 +231,11 @@ class Trainable:
         print(f'Associated train accuracy: {associated_train_acc:.4f}')
         print(f'Associated train loss: {associated_train_loss:.4f}')
 
+        # load best model weights
+        model.load_state_dict(best_model_weights)
         # Store best scores, convert torch tensor to float
         self.best_val_accuracy = float(best_val_acc)
         self.associated_train_accuracy = float(associated_train_acc)
         self.associated_train_loss = float(associated_train_loss)
 
-        # load best model weights and return the model
-        model.load_state_dict(best_model_weights)
-        return model
+        return best_val_acc

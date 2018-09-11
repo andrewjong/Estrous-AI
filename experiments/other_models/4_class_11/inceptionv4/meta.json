@@ -1,0 +1,32 @@
+{
+    "experiment_name": "resnet101_basic_config",
+    "data_dir": "data/4_class_11",
+    "model": [
+        "inceptionv4",
+        "pretrained=imagenet"
+    ],
+    "optimizer": [
+        "SGD",
+        "lr=0.001",
+        "momentum=0.9"
+    ],
+    "lr_scheduler": [
+        "StepLR",
+        "step_size=7",
+        "gamma=0.1"
+    ],
+    "criterion": [
+        "CrossEntropyLoss"
+    ],
+    "transfer_technique": "finetune",
+    "num_epochs": 50,
+    "batch_size": 4,
+    "load_args": "experiments/other_models/4_class_11/inception_v3/",
+    "use_previous_model": false,
+    "skip_metrics": false,
+    "overwrite": false,
+    "best_val_accuracy": 0.7914691943127963,
+    "train_accuracy": 0.742914979757085,
+    "train_loss": 0.6441463857044575,
+    "finished_epochs": 50
+}

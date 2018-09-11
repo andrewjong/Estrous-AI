@@ -12,7 +12,6 @@ from tqdm import tqdm
 
 import src.utils as utils
 from common_constants import EXPERIMENTS_ROOT, META_FNAME, MODEL_PARAMS_FNAME
-from src.model_choices import TRAIN_MODEL_CHOICES
 
 # name for output. will have subset prepended to it later
 PREDICT_BASENAME = "predictions.csv"
@@ -124,8 +123,9 @@ def load_model(model_path, meta_dict, num_classes, device="cpu"):
     Returns:
         torch.NN -- the torch model object
     """
-    HyperParamsClass = TRAIN_MODEL_CHOICES[meta_dict["model"]]
-    model = HyperParamsClass(num_classes, *meta_dict["added_args"]).model
+    model_args = meta_dict["model"]
+    model = utils.build_model(model_args, num_classes, "finetune")
+
     try:
         model.load_state_dict(
             torch.load(model_path, map_location=lambda storage, loc: storage))

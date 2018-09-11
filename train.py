@@ -1,14 +1,16 @@
-import argparse
 import json
 import os
 
 import torch
+import torch.nn
+import torch.optim
 
 import src.utils as utils
-from common_constants import EXPERIMENTS_ROOT, META_FNAME, MODEL_PARAMS_FNAME
+from common_constants import EXPERIMENTS_ROOT
 from metrics import create_all_metrics
 from predict import create_predictions
-from src.model_choices import TRAIN_MODEL_CHOICES
+from src.trainable import Trainable
+from src.utils import build_attr, build_model
 
 TRAIN_RESULTS_FNAME = "train.csv"
 
@@ -18,28 +20,26 @@ def build_and_train_model(model_starter_file=False):
     it on the chosen dataset.
     """
     # Obtain train and validation datasets and dataloaders
+    image_size = utils.determine_image_size(args.model[0])
+    print('imagesize', image_size)
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        args.data_dir, "train", "val", batch_size=args.batch_size)
-    dataset_sizes = {
-        subset: len(datasets[subset])
-        for subset in ('train', 'val')
-    }
+        args.data_dir, "train", "val", batch_size=args.batch_size,
+        image_size=image_size)
 
     num_classes = len(datasets["train"].classes)
 
     # Instantiate the model object
-    TrainableClass = TRAIN_MODEL_CHOICES[args.model]
     try:
-        trainable = TrainableClass(num_classes, *args.added_args)
+        trainable = build_trainable(num_classes, args.model, args.optimizer,
+                                    args.criterion, args.lr_scheduler,
+                                    transfer_technique=args.transfer_technique)
         # load in existing weights if requested
         if model_starter_file:
             load_pretrained_model_weights(trainable.model, model_starter_file)
     except TypeError as e:
-        print("Caught TypeError when instantiating model class. Make sure " +
-              "all required model arguments are passed, in order, using the " +
-              "-a flag.\n")
-        print(e)
-        exit(1)
+        print("Caught TypeError when instantiating trainable. Make sure " +
+              "all required arguments are passed.\n")
+        raise e
 
     # Make results dir path. Check if it already exists.
     try:
@@ -56,16 +56,31 @@ def build_and_train_model(model_starter_file=False):
     # make the results file
     results_filepath = prepare_results_file()
     # Train
-    trained_model = trainable.train(dataloaders, dataset_sizes,
-                                    args.num_epochs, results_filepath)
-    # Write the meta file containing train data
-    write_meta(trainable.best_val_accuracy,
-               trainable.associated_train_accuracy,
-               trainable.associated_train_loss, trainable.finished_epochs)
+    trainable.train(dataloaders, args.num_epochs, 
+                    results_filepath=results_filepath)
+    trainable.save(outdir, extra_meta=vars(args))
 
-    # Save the model
-    save_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
-    torch.save(trained_model.state_dict(), save_path)
+
+def build_trainable(num_classes, model_args, optim_args, criterion_args,
+                    lr_scheduler_args,
+                    transfer_technique=None):
+    # set the num_classes arg
+    # model_args.append(f'num_classes={num_classes}')
+    model = build_model(model_args, num_classes, transfer_technique)
+
+    # do transfer learning if desired
+    if transfer_technique == "finetune":
+        model_params = model.parameters()
+    elif transfer_technique == "fixed":
+        model_params = model.fc.parameters()
+
+    optimizer = build_attr(torch.optim, optim_args, first_arg=model_params)
+    criterion = build_attr(torch.nn, criterion_args)
+    lr_scheduler = build_attr(torch.optim.lr_scheduler,
+                              lr_scheduler_args, first_arg=optimizer)
+
+    trainable = Trainable(model, criterion, optimizer, lr_scheduler)
+    return trainable
 
 
 def load_pretrained_model_weights(target_model, load_file):
@@ -89,31 +104,7 @@ def load_pretrained_model_weights(target_model, load_file):
     target_model.load_state_dict(model_dict)
 
 
-def write_meta(best_val_acc, associated_train_acc, associated_train_loss,
-               finished_epochs):
-    """Writes meta data about the train
-
-    Arguments:
-        best_val_acc {[type]} -- [description]
-        associated_train_acc {[type]} -- [description]
-        associated_train_loss {[type]} -- [description]
-    """
-    meta_info = vars(args)
-    # add extra values to the dictionary
-    meta_info.update({
-        "best_val_accuracy": best_val_acc,
-        "train_accuracy": associated_train_acc,
-        "train_loss": associated_train_loss,
-        "finished_epochs": finished_epochs
-    })
-    meta_out = os.path.join(outdir, META_FNAME)
-    with open(meta_out, 'w') as out:
-        json.dump(meta_info, out, indent=4)
-    # TODO: check to see if training finished or not. if it didn't, record
-    # where to pick up to finish training
-
-
-def prepare_results_file():
+def prepare_results_file(results_filepath=None):
     """Creates a file (overwrites if existing) for recording train results
     using the results path specified in parse_args.
     Adds in a header for the file as "epoch,loss,train_acc,val_acc"
@@ -121,83 +112,20 @@ def prepare_results_file():
     Returns:
         string -- path of the created file
     """
-    results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
+    if not results_filepath:
+        results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
     header = "steps,loss,train_acc,val_acc"
     results_filepath = utils.make_csv_with_header(results_filepath, header)
     return results_filepath
 
 
 if __name__ == '__main__':
-    # TODO: Convert these arguments into a configuration file later
-    parser = argparse.ArgumentParser(
-        description="Train an estrous cycle cell-phase classifer model.")
-
-    parser.add_argument(
-        "model",
-        choices=list(TRAIN_MODEL_CHOICES),
-        nargs="?",
-        help=f'Choose which model to use.')
-    parser.add_argument(
-        "-e",
-        "--experiment_name",
-        help='Name of the experiment. This becomes the \
-                        subdirectory that the experiment output is stored in, \
-                        i.e. "experiments/my_experiment/" (default: \
-                        "unnamed_experiment").')
-    parser.add_argument(
-        "-d",
-        "--data_dir",
-        help='Root directory of dataset to use, with classes \
-                        separated into separate subdirectories.')
-    parser.add_argument(
-        "-n",
-        "--num_epochs",
-        type=int,
-        metavar="N",
-        default=50,
-        help='Number of epochs to train for (default: 50).')
-    parser.add_argument(
-        "-b", "--batch_size", default=4, type=int, help="Select a batch size.")
-    parser.add_argument(
-        "-a",
-        "--added_args",
-        nargs="+",
-        default=[],
-        help="Pass addiitional arguments for instantiating the \
-                        chosen model.")
-    parser.add_argument(
-        "-l",
-        "--load_args",
-        help="Option to load in train args from a previous \
-                        train session using that session's \"meta.json\" \
-                        file. Passed and default args will override loaded \
-                        args.")
-    parser.add_argument(
-        "-p",
-        "--use_previous_model",
-        action='store_true',
-        help="Continue training from the model.pth file \
-                        created from a previous train run. Must have \
-                        --load_args argument passed in.")
-    parser.add_argument(
-        "--skip_metrics",
-        action='store_true',
-        help="Choose to NOT run predict.py and metrics.py \
-                         on the validation-set after training, i.e. do not \
-                         calculate performance metrics.")
-    parser.add_argument(
-        "--overwrite",
-        action='store_true',
-        help="Skip the prompt that double checks whether to \
-                        overwrite existing files. Existing files will be \
-                        overwritten.")
-
+    from train_args import train_args
     global args
-    args = parser.parse_args()
-
+    args = train_args
     print()
-    print(
-        f'*** BEGINNING EXPERIMENT: "{args.experiment_name}" ***', end="\n\n")
+    print(f'*** BEGINNING EXPERIMENT: "{args.experiment_name}" ***',
+          end="\n\n")
 
     # load args from a previous train session if requested
     if args.load_args:
@@ -222,8 +150,6 @@ if __name__ == '__main__':
                 print(f'  {common_arg}: {load_value}')
         print()
 
-    # some setup for our eventual output directory name
-    model_name = "-".join([args.model] + args.added_args)
     # get rid of the extra slash if the user put one
     if args.data_dir[-1] == "/" or args.data_dir[-1] == "\\":
         args.data_dir = args.data_dir[:-1]
@@ -231,7 +157,7 @@ if __name__ == '__main__':
     # Make the output directory for the experiment
     global outdir
     outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name, dataset_name,
-                          model_name)
+                          args.model[0])
 
     if args.use_previous_model:
         prev_model_file = os.path.join(args.load_args, "model.pth")
