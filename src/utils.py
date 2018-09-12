@@ -6,6 +6,7 @@ import pretrainedmodels
 import src.custom_models
 import torchvision
 from common_constants import PHASE_ORDER
+from common_constants import MODEL_TO_IMAGE_SIZE, DEFAULT_IMAGE_SIZE
 from strconv import convert
 from torchvision import datasets, transforms
 
@@ -13,13 +14,14 @@ from torchvision import datasets, transforms
 def SORT_BY_PHASE_FN(item):
     try:
         return PHASE_ORDER[item[0].lower()]
-    except(KeyError):
+    except (KeyError):
         return ord(item[0])  # THIS IS BAD CODE
+
 
 # class_names = image_datasets['train'].classes
 
 
-# Normalization parameters. 
+# Normalization parameters.
 # See https://pytorch.org/docs/stable/torchvision/models.html for these values
 means = (0.485, 0.456, 0.406)
 stds = (0.229, 0.224, 0.225)
@@ -28,54 +30,65 @@ stds = (0.229, 0.224, 0.225)
 def determine_image_size(model_name):
     """Get the input size for a particlar model. These values are hardcoded
     and based on the code frameworks. Possibly subject to change.
-    
+
     Arguments:
         model_name {string} -- name of the model
-    
+
     Returns:
         int -- input size in pixels
     """
-
-    if 'inception' in model_name:
-        return 299
-    elif 'nasnetalarge' in model_name:
-        return 331
-    else:
-        return 224
+    try:
+        return MODEL_TO_IMAGE_SIZE[model_name.lower()]
+    except KeyError:
+        return DEFAULT_IMAGE_SIZE
 
 
-def make_transform_dict(image_size=224):
+def make_transform_dict(image_size=DEFAULT_IMAGE_SIZE):
     data_transforms = {
-        'train': transforms.Compose([
-            transforms.RandomAffine(degrees=30, shear=30, scale=(1, 1.75)),
-            transforms.CenterCrop(950),
-            transforms.RandomResizedCrop(image_size),
-            # data augmentation, randomly flip and vertically flip across epochs
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
-            # ColorJitter values chosen somewhat arbitrarily by what "looked" good
-            # possibly something to optimize
-            # transforms.ColorJitter(brightness=0.20, saturation=0.70, contrast=0.5,
-            #                        hue=0.10),
-            # convert to PyTorch tensor
-            transforms.ToTensor(),
-            # normalize
-            transforms.Normalize(means, stds)
-        ]),
-        'val': transforms.Compose([
-            transforms.CenterCrop(image_size),
-            transforms.ToTensor(),
-            transforms.Normalize(means, stds)
-        ]),
+        "train": transforms.Compose(
+            [
+                transforms.RandomAffine(degrees=30, shear=30, scale=(1, 1.75)),
+                transforms.CenterCrop(950),
+                transforms.RandomResizedCrop(image_size),
+                # data augmentation, randomly flip and vertically flip across epochs
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
+                # ColorJitter values chosen somewhat arbitrarily by what "looked" good
+                # possibly something to optimize
+                # transforms.ColorJitter(brightness=0.20, saturation=0.70, contrast=0.5,
+                #                        hue=0.10),
+                # convert to PyTorch tensor
+                transforms.ToTensor(),
+                # normalize
+                transforms.Normalize(means, stds),
+            ]
+        ),
+        "val": transforms.Compose(
+            [
+                transforms.CenterCrop(image_size),
+                transforms.ToTensor(),
+                transforms.Normalize(means, stds),
+            ]
+        ),
     }
     # set test and val to same transform
-    data_transforms['test'] = data_transforms['val']
+    data_transforms["test"] = data_transforms["val"]
     return data_transforms
 
 
+def get_dataloaders(data_dir, *subsets, include_paths=False,
+                    image_size=DEFAULT_IMAGE_SIZE, batch_size=4, shuffle=True):
+
+    _, dataloaders = get_datasets_and_loaders(**locals())
+
+    # # set the dataloader length to be the length of the dataset
+    # for subset, dataloader in dataloaders.items():
+    #     dataloader.__len__ = len(datasets[subset]) / batch_size
+    return dataloaders
+
+
 def get_datasets_and_loaders(data_dir, *subsets, include_paths=False,
-                             image_size=224,
-                             batch_size=4, shuffle=True):
+                             image_size=DEFAULT_IMAGE_SIZE, batch_size=4, shuffle=True):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
         data_dir {string} -- path of directory
@@ -93,18 +106,24 @@ def get_datasets_and_loaders(data_dir, *subsets, include_paths=False,
 
     # the dataset we use is either the normal ImageFolder, or our custom
     #   ImageFolder
-    im_folder_class = ImageFolderWithPaths if include_paths \
-        else datasets.ImageFolder
+    im_folder_class = ImageFolderWithPaths if include_paths else datasets.ImageFolder
     # get the datasets for each given subset, e.g. train, val, test
-    image_datasets = {subset: im_folder_class(
-        os.path.join(data_dir, subset), data_transforms[subset])
-        for subset in subsets}
+    image_datasets = {
+        subset: im_folder_class(os.path.join(
+            data_dir, subset), data_transforms[subset])
+        for subset in subsets
+    }
     # make dataloaders for each of the datasets above
     num_gpus = torch.cuda.device_count()
-    dataloaders = {subset: torch.utils.data.DataLoader(
-        image_datasets[subset], batch_size=batch_size, shuffle=shuffle,
-        num_workers=num_gpus * 4)
-        for subset in subsets}
+    dataloaders = {
+        subset: torch.utils.data.DataLoader(
+            image_datasets[subset],
+            batch_size=batch_size,
+            shuffle=shuffle,
+            num_workers=num_gpus * 4,
+        )
+        for subset in subsets
+    }
 
     return image_datasets, dataloaders
 
@@ -121,7 +140,7 @@ class ImageFolderWithPaths(datasets.ImageFolder):
         # the image file path
         path = self.imgs[index][0]
         # make a new tuple that includes original and the path
-        tuple_with_path = (original_tuple + (path,))
+        tuple_with_path = original_tuple + (path,)
         return tuple_with_path
 
 
@@ -139,7 +158,7 @@ def make_csv_with_header(results_filepath, header):
     """
     # write the csv header
     os.makedirs(os.path.dirname(results_filepath), exist_ok=True)
-    with open(results_filepath, 'w') as f:
+    with open(results_filepath, "w") as f:
         f.write(header + "\n")
     return results_filepath
 
@@ -152,21 +171,25 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
     use_last_linear = False
     try:
         model_fn = getattr(pretrainedmodels, model_name)
-        print(f'Model {model_name} found under library pretrainedmodels.')
+        print(f"Model {model_name} found under library pretrainedmodels.")
         use_last_linear = True
     except AttributeError:
-        print(f'Could not find model {model_name} under pretrainedmodels. ' +
-              "Looking under torchvision.models.")
+        print(
+            f"Could not find model {model_name} under pretrainedmodels. "
+            + "Looking under torchvision.models."
+        )
         try:
             model_fn = getattr(torchvision.models, model_name)
-            print(f'Model {model_name} found under torchvision.models.')
+            print(f"Model {model_name} found under torchvision.models.")
         # else try from custom models
         except AttributeError:
-            print(f'Could not find model {model_name} under torchvision.models. ' +
-                  "Looking under src.custom_models.")
+            print(
+                f"Could not find model {model_name} under torchvision.models. "
+                + "Looking under src.custom_models."
+            )
             try:
                 model_fn = getattr(src.custom_models, model_name)
-                print(f'Model {model_name} found under src.custom_models.')
+                print(f"Model {model_name} found under src.custom_models.")
             # else error
             except AttributeError as e:
                 raise e
@@ -198,8 +221,9 @@ def build_attr(module, attr_args=None, first_arg=None):
         return None
     attr_name, attr_kwargs = args_to_name_and_kwargs(attr_args)
     attr_fn = getattr(module, attr_name)
-    attribute = attr_fn(
-        first_arg, **attr_kwargs) if first_arg else attr_fn(**attr_kwargs)
+    attribute = (
+        attr_fn(first_arg, **attr_kwargs) if first_arg else attr_fn(**attr_kwargs)
+    )
     return attribute
 
 
@@ -224,7 +248,7 @@ def make_kwargs_dict(kwargs_list):
     """
     kwargs_dict = {
         # key -> value converted as the correct type
-        kwarg.split('=')[0]: convert(kwarg.split('=')[1])
+        kwarg.split("=")[0]: convert(kwarg.split("=")[1])
         for kwarg in kwargs_list
     }
     return kwargs_dict

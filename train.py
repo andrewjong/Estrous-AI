@@ -54,7 +54,6 @@ def build_and_train_model(model_starter_file=False):
     print(f'Writing results to "{outdir}"')
 
     # make the results file
-    results_filepath = prepare_results_file()
     # Train
     trainable.train(dataloaders, args.num_epochs, 
                     results_filepath=results_filepath)
@@ -104,20 +103,28 @@ def load_pretrained_model_weights(target_model, load_file):
     target_model.load_state_dict(model_dict)
 
 
-def prepare_results_file(results_filepath=None):
-    """Creates a file (overwrites if existing) for recording train results
-    using the results path specified in parse_args.
-    Adds in a header for the file as "epoch,loss,train_acc,val_acc"
 
-    Returns:
-        string -- path of the created file
-    """
-    if not results_filepath:
-        results_filepath = os.path.join(outdir, TRAIN_RESULTS_FNAME)
-    header = "steps,loss,train_acc,val_acc"
-    results_filepath = utils.make_csv_with_header(results_filepath, header)
-    return results_filepath
+def load_args(args):
+    # if the user passed in a directory, assume they meant "meta.json"
+    if os.path.isdir(args.load_args):
+        load_args_file = os.path.join(args.load_args, "meta.json")
+    elif os.path.isfile(args.load_args):
+        load_args_file = args.load_args
 
+    with open(load_args_file, 'r') as f:
+        loaded = json.load(f)
+    # only load intersecting arguments, in case the load file has extraneous
+    # information
+    intersected_keys = set(vars(args).keys()) & set(loaded.keys())
+    load_args_dict = {k: loaded[k] for k in intersected_keys}
+    print("Loaded args:")
+    # for each arg in argparse, check if any were not set by the user
+    for common_arg, load_value in load_args_dict.items():
+        # if the user did not set the argument, load it
+        if not getattr(args, common_arg):
+            setattr(args, common_arg, load_value)
+            print(f'  {common_arg}: {load_value}')
+    print()
 
 if __name__ == '__main__':
     from train_args import train_args
@@ -129,26 +136,7 @@ if __name__ == '__main__':
 
     # load args from a previous train session if requested
     if args.load_args:
-        # if the user passed in a directory, assume they meant "meta.json"
-        if os.path.isdir(args.load_args):
-            load_args_file = os.path.join(args.load_args, "meta.json")
-        elif os.path.isfile(args.load_args):
-            load_args_file = args.load_args
-
-        with open(load_args_file, 'r') as f:
-            loaded = json.load(f)
-        # only load intersecting arguments, in case the load file has extraneous
-        # information
-        intersected_keys = set(vars(args).keys()) & set(loaded.keys())
-        load_args_dict = {k: loaded[k] for k in intersected_keys}
-        print("Loaded args:")
-        # for each arg in argparse, check if any were not set by the user
-        for common_arg, load_value in load_args_dict.items():
-            # if the user did not set the argument, load it
-            if not getattr(args, common_arg):
-                setattr(args, common_arg, load_value)
-                print(f'  {common_arg}: {load_value}')
-        print()
+        load_args(args)
 
     # get rid of the extra slash if the user put one
     if args.data_dir[-1] == "/" or args.data_dir[-1] == "\\":
