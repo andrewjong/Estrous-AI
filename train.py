@@ -10,32 +10,21 @@ from common_constants import EXPERIMENTS_ROOT
 from metrics import create_all_metrics
 from predict import create_predictions
 from src.trainable import Trainable
-from src.utils import build_attr, build_model
-
-TRAIN_RESULTS_FNAME = "train.csv"
+from src.utils import build_attr, build_model_from_args
 
 
 def build_and_train_model(model_starter_file=False):
     """ This is the main training function that constructs the model and trains
     it on the chosen dataset.
     """
-    # Obtain train and validation datasets and dataloaders
-    image_size = utils.determine_image_size(args.model[0])
-    print('imagesize', image_size)
-    datasets, dataloaders = utils.get_datasets_and_loaders(
-        args.data_dir, "train", "val", batch_size=args.batch_size,
-        image_size=image_size)
-
-    num_classes = len(datasets["train"].classes)
-
-    # Instantiate the model object
+    # Instantiate the trainable object
     try:
-        trainable = build_trainable(num_classes, args.model, args.optimizer,
-                                    args.criterion, args.lr_scheduler,
-                                    transfer_technique=args.transfer_technique)
+        trainable = build_trainable_from_args(args.data_dir, args.model, args.optimizer,
+                                              args.criterion, args.lr_scheduler,
+                                              args.batch_size, outdir)
         # load in existing weights if requested
         if model_starter_file:
-            load_pretrained_model_weights(trainable.model, model_starter_file)
+            trainable.load_model_weights(model_starter_file)
     except TypeError as e:
         print("Caught TypeError when instantiating trainable. Make sure " +
               "all required arguments are passed.\n")
@@ -53,55 +42,46 @@ def build_and_train_model(model_starter_file=False):
             exit()
     print(f'Writing results to "{outdir}"')
 
-    # make the results file
     # Train
-    trainable.train(dataloaders, args.num_epochs, 
-                    results_filepath=results_filepath)
-    trainable.save(outdir, extra_meta=vars(args))
+    trainable.train(args.num_epochs)
+    trainable.save(extra_meta=vars(args))
 
 
-def build_trainable(num_classes, model_args, optim_args, criterion_args,
-                    lr_scheduler_args,
-                    transfer_technique=None):
+def build_trainable_from_args(datadir, model_args, optim_args, criterion_args,
+                              lr_scheduler_args, batch_size, outdir):
+    """Builds a Trainable from command line args
+
+    Arguments:
+        datadir {[type]} -- [description]
+        model_args {[type]} -- [description]
+        optim_args {[type]} -- [description]
+        criterion_args {[type]} -- [description]
+        lr_scheduler_args {[type]} -- [description]
+
+    Returns:
+        [type] -- [description]
+    """
+
     # set the num_classes arg
     # model_args.append(f'num_classes={num_classes}')
-    model = build_model(model_args, num_classes, transfer_technique)
+    model_name, _ = utils.args_to_name_and_kwargs(model_args)
+    image_size = utils.determine_image_size(model_name)
+    dataloaders = utils.get_dataloaders(
+        datadir, ('train', 'val'), image_size=image_size, batch_size=args.batch_size)
 
-    # do transfer learning if desired
-    if transfer_technique == "finetune":
-        model_params = model.parameters()
-    elif transfer_technique == "fixed":
-        model_params = model.fc.parameters()
+    model = build_model_from_args(args.model)
+    model = utils.fit_model_last_to_dataset(
+        model, dataloaders['train'].dataset)
 
-    optimizer = build_attr(torch.optim, optim_args, first_arg=model_params)
+    optimizer = build_attr(torch.optim, optim_args,
+                           first_arg=model.parameters())
     criterion = build_attr(torch.nn, criterion_args)
     lr_scheduler = build_attr(torch.optim.lr_scheduler,
                               lr_scheduler_args, first_arg=optimizer)
 
-    trainable = Trainable(model, criterion, optimizer, lr_scheduler)
+    trainable = Trainable(dataloaders, model, criterion, optimizer, lr_scheduler,
+                          outdir)
     return trainable
-
-
-def load_pretrained_model_weights(target_model, load_file):
-    """Load pretrained model weights except for the last fully connected layer
-
-    Arguments:
-        target_model {[type]} -- [description]
-        load_file {[type]} -- [description]
-    """
-
-    pretrained_dict = torch.load(
-        load_file, map_location=lambda storage, loc: storage)
-
-    model_dict = target_model.state_dict()
-    excluded = ['fc.weight', 'fc.bias']
-    pretrained_dict = {
-        k: v
-        for k, v in pretrained_dict.items() if k not in excluded
-    }
-    model_dict.update(pretrained_dict)
-    target_model.load_state_dict(model_dict)
-
 
 
 def load_args(args):
@@ -125,6 +105,7 @@ def load_args(args):
             setattr(args, common_arg, load_value)
             print(f'  {common_arg}: {load_value}')
     print()
+
 
 if __name__ == '__main__':
     from train_args import train_args

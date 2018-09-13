@@ -124,7 +124,7 @@ def load_model(model_path, meta_dict, num_classes, device="cpu"):
         torch.NN -- the torch model object
     """
     model_args = meta_dict["model"]
-    model = utils.build_model(model_args, num_classes, "finetune")
+    model = utils.build_model_from_args(model_args, num_classes, "finetune")
 
     try:
         model.load_state_dict(

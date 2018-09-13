@@ -76,7 +76,24 @@ def make_transform_dict(image_size=DEFAULT_IMAGE_SIZE):
     return data_transforms
 
 
-def get_dataloaders(data_dir, *subsets, include_paths=False,
+def get_dataset_sizes(dataloaders):
+    """Get the sizes of datasets from dataloaders
+
+    Arguments:
+        dataloaders {[type]} -- [description]
+
+    Returns:
+        [type] -- [description]
+    """
+
+    dataset_sizes = {  # sizes for our progress bar
+        phase: len(loader.dataset)
+        for phase, loader in dataloaders.items()
+    }
+    return dataset_sizes
+
+
+def get_dataloaders(data_dir, subsets, include_paths=False,
                     image_size=DEFAULT_IMAGE_SIZE, batch_size=4, shuffle=True):
 
     _, dataloaders = get_datasets_and_loaders(**locals())
@@ -87,12 +104,12 @@ def get_dataloaders(data_dir, *subsets, include_paths=False,
     return dataloaders
 
 
-def get_datasets_and_loaders(data_dir, *subsets, include_paths=False,
+def get_datasets_and_loaders(data_dir, subsets, include_paths=False,
                              image_size=DEFAULT_IMAGE_SIZE, batch_size=4, shuffle=True):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
         data_dir {string} -- path of directory
-        subsets {string(s)} -- "train", "val", or "test"; pass in multiple if
+        subsets {tuple} -- contains "train", "val", or "test"; pass in multiple if
                                 desired.
 
     Keyword Arguments:
@@ -102,6 +119,9 @@ def get_datasets_and_loaders(data_dir, *subsets, include_paths=False,
     Returns:
         tuple -- datasets, dataloaders
     """
+    if type(subsets) is str:
+        subsets = (subsets, )
+
     data_transforms = make_transform_dict(image_size)
 
     # the dataset we use is either the normal ImageFolder, or our custom
@@ -163,16 +183,46 @@ def make_csv_with_header(results_filepath, header):
     return results_filepath
 
 
-def build_model(model_args, num_classes, transfer_technique="finetune"):
+def fit_model_last_to_dataset(model, dataset):
+    num_out = len(dataset.classes)
+    try:
+        # case of torchvision
+        num_in = model.fc.in_features
+        model.fc = torch.nn.Linear(num_in, num_out)
+    except AttributeError:
+        try:
+            # case of pretrainedmodels
+            num_in = model.last_linear.in_features
+            model.last_linear = torch.nn.Linear(num_in, num_out)
+        except AttributeError as e:
+            raise e
+
+    model_name = get_model_name_from_fn(model)
+    if "inception" in model_name:
+        model.aux_logits = False
+
+    return model
+
+
+def get_model_name_from_fn(model_fn):
+    return str(model_fn).split()[1]
+
+
+def make_dataloaders_from_model_input_size(datadir, model_fn, batch_size):
+    model_name = get_model_name_from_fn(model_fn)
+    image_size = determine_image_size(model_name)
+    return get_dataloaders(datadir, ('train', 'val'), image_size=image_size,
+                           batch_size=batch_size)
+
+
+def build_model_from_args(model_args):
     # split into model name and model_kwargs
     model_name, model_kwargs = args_to_name_and_kwargs(model_args)
     # Load the model
     # first try from torchvision
-    use_last_linear = False
     try:
         model_fn = getattr(pretrainedmodels, model_name)
         print(f"Model {model_name} found under library pretrainedmodels.")
-        use_last_linear = True
     except AttributeError:
         print(
             f"Could not find model {model_name} under pretrainedmodels. "
@@ -193,26 +243,8 @@ def build_model(model_args, num_classes, transfer_technique="finetune"):
             # else error
             except AttributeError as e:
                 raise e
-
     # instatiate with kwargs
     model = model_fn(**model_kwargs)
-    if "inception" in model_name:
-        model.aux_logits = False
-    if use_last_linear:
-        model.fc = model.last_linear
-
-    num_features = model.fc.in_features
-    # do transfer learning if desired
-    if transfer_technique == "finetune":
-        # tack on output of 4 classes
-        model.fc = torch.nn.Linear(num_features, num_classes)
-    elif transfer_technique == "fixed":
-        # stop gradient tracking in previous layers to freeze them
-        for param in model.parameters():
-            param.requires_grad = False
-
-        model.fc = torch.nn.Linear(num_features, num_classes)
-
     return model
 
 
