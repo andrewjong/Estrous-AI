@@ -66,8 +66,8 @@ def build_trainable_from_args(datadir, model_args, optim_args, criterion_args,
     # model_args.append(f'num_classes={num_classes}')
     model_name, _ = utils.args_to_name_and_kwargs(model_args)
     image_size = utils.determine_image_size(model_name)
-    dataloaders = utils.get_dataloaders(
-        datadir, ('train', 'val'), image_size=image_size, batch_size=args.batch_size)
+    dataloaders = utils.get_train_val_dataloaders(datadir, 0.15, image_size, args.batch_size)
+    print(dataloaders)
 
     model = build_model_from_args(args.model)
     model = utils.fit_model_last_to_dataset(

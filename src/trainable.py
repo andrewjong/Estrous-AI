@@ -299,5 +299,5 @@ class Trainable:
         print(f"Training completed in {int(self.train_time // 60)}m "
               + f"{int(self.train_time % 60)}s")
         print(f"Best validation accuracy: {self.best_val_accuracy:.4f}")
-        print(f"Associated train accuracy: {self.associated_train_acc:.4f}")
+        print(f"Associated train accuracy: {self.associated_train_accuracy:.4f}")
         print(f"Associated train loss: {self.associated_train_loss:.4f}")

@@ -1,13 +1,15 @@
+import copy
 import os
-
-import torch
+import random
 
 import pretrainedmodels
+import torch
+from strconv import convert
+
 import src.custom_models
 import torchvision
-from common_constants import PHASE_ORDER
-from common_constants import MODEL_TO_IMAGE_SIZE, DEFAULT_IMAGE_SIZE
-from strconv import convert
+from common_constants import (DEFAULT_IMAGE_SIZE, MODEL_TO_IMAGE_SIZE,
+                              PHASE_ORDER, DEFAULT_VAL_PROPORTION, DEFAULT_BATCH_SIZE)
 from torchvision import datasets, transforms
 
 
@@ -93,8 +95,70 @@ def get_dataset_sizes(dataloaders):
     return dataset_sizes
 
 
+def get_train_val_dataloaders(datadir, val_proportion=DEFAULT_VAL_PROPORTION,
+                             image_size=DEFAULT_IMAGE_SIZE, batch_size=16,
+                             shuffle_seed=None):
+    image_transforms = make_transform_dict(image_size)
+    full_train_set = datasets.ImageFolder(datadir)
+
+    train_set, val_set = dataset_stratified_train_val_split(full_train_set, val_proportion, image_transforms, 
+                                                    shuffle_seed)
+    image_datasets = {
+        'train': train_set,
+        'val': val_set
+    }
+    # make dataloaders for each of the datasets above
+    num_gpus = torch.cuda.device_count()
+    dataloaders = {
+        subset: torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            shuffle=True,
+            num_workers=num_gpus * 4,
+        )
+        for subset, dataset in image_datasets.items()
+    }
+    return dataloaders
+
+
+def dataset_stratified_train_val_split(full_train_set, val_proportion=DEFAULT_VAL_PROPORTION, image_transforms=None, shuffle_seed=None):
+    train_set = copy.copy(full_train_set)
+    val_set = copy.copy(full_train_set)
+
+    # split the samples into respective classes
+    sep_classes = [[] for _ in range(len(train_set.classes))]
+    for sample in train_set.samples:
+        _, class_idx = sample
+        sep_classes[class_idx].append(sample)
+
+    # use stratified random sampling to split into train and val
+    train_samples, val_samples = [], []
+    if shuffle_seed:
+        random.seed(shuffle_seed)
+    for c_samples in sep_classes:
+        split_location = int(len(c_samples) * (1 - val_proportion))
+        random.shuffle(c_samples)
+
+        train_part = c_samples[:split_location]
+        train_samples.extend(train_part)
+
+        val_part = c_samples[split_location:]
+        val_samples.extend(val_part)
+
+    # update with new samples
+    train_set.samples = train_samples
+    val_set.samples = val_samples
+    # set the transforms
+    if image_transforms:
+        train_set.transform = image_transforms['train']
+        val_set.transform = image_transforms['val']
+
+    return train_set, val_set
+
+
+# seed for train-val-shuffle
 def get_dataloaders(data_dir, subsets, include_paths=False,
-                    image_size=DEFAULT_IMAGE_SIZE, batch_size=4, shuffle=True):
+                    image_size=DEFAULT_IMAGE_SIZE, batch_size=DEFAULT_BATCH_SIZE, shuffle=True):
 
     _, dataloaders = get_datasets_and_loaders(**locals())
 
@@ -105,7 +169,7 @@ def get_dataloaders(data_dir, subsets, include_paths=False,
 
 
 def get_datasets_and_loaders(data_dir, subsets, include_paths=False,
-                             image_size=DEFAULT_IMAGE_SIZE, batch_size=4, shuffle=True):
+                             image_size=DEFAULT_IMAGE_SIZE, batch_size=DEFAULT_BATCH_SIZE, shuffle=True):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
         data_dir {string} -- path of directory
@@ -208,11 +272,11 @@ def get_model_name_from_fn(model_fn):
     return str(model_fn).split()[1]
 
 
-def make_dataloaders_from_model_input_size(datadir, model_fn, batch_size):
-    model_name = get_model_name_from_fn(model_fn)
-    image_size = determine_image_size(model_name)
-    return get_dataloaders(datadir, ('train', 'val'), image_size=image_size,
-                           batch_size=batch_size)
+# def make_dataloaders_from_model_input_size(datadir, model_fn, batch_size):
+#     model_name = get_model_name_from_fn(model_fn)
+#     image_size = determine_image_size(model_name)
+#     return get_dataloaders(datadir, ('train', 'val'), image_size=image_size,
+#                            batch_size=batch_size)
 
 
 def build_model_from_args(model_args):
