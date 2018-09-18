@@ -19,23 +19,33 @@ def build_and_train_model(model_starter_file=False):
     """
     # Instantiate the trainable object
     try:
-        trainable = build_trainable_from_args(args.data_dir, args.model, args.optimizer,
-                                              args.criterion, args.lr_scheduler,
-                                              args.batch_size, outdir)
+        trainable = build_trainable_from_args(
+            args.data_dir,
+            args.model,
+            args.optimizer,
+            args.criterion,
+            args.lr_scheduler,
+            args.batch_size,
+            outdir,
+        )
         # load in existing weights if requested
         if model_starter_file:
             trainable.load_model_weights(model_starter_file)
     except TypeError as e:
-        print("Caught TypeError when instantiating trainable. Make sure " +
-              "all required arguments are passed.\n")
+        print(
+            "Caught TypeError when instantiating trainable. Make sure "
+            + "all required arguments are passed.\n"
+        )
         raise e
 
     # Make results dir path. Check if it already exists.
     try:
         os.makedirs(outdir, exist_ok=args.overwrite)
     except OSError:
-        can_continue = input(f'The directory "{outdir}" already exists. ' +
-                             "Do you wish to continue anyway? (y/N): ")
+        can_continue = input(
+            f'The directory "{outdir}" already exists. '
+            + "Do you wish to continue anyway? (y/N): "
+        )
         if can_continue and can_continue.lower()[0] == "y":
             os.makedirs(outdir, exist_ok=True)
         else:
@@ -47,8 +57,15 @@ def build_and_train_model(model_starter_file=False):
     trainable.save(extra_meta=vars(args))
 
 
-def build_trainable_from_args(datadir, model_args, optim_args, criterion_args,
-                              lr_scheduler_args, batch_size, outdir):
+def build_trainable_from_args(
+    datadir,
+    model_args,
+    optim_args,
+    criterion_args,
+    lr_scheduler_args,
+    batch_size,
+    outdir,
+):
     """Builds a Trainable from command line args
 
     Arguments:
@@ -66,21 +83,23 @@ def build_trainable_from_args(datadir, model_args, optim_args, criterion_args,
     # model_args.append(f'num_classes={num_classes}')
     model_name, _ = utils.args_to_name_and_kwargs(model_args)
     image_size = utils.determine_image_size(model_name)
-    dataloaders = utils.get_train_val_dataloaders(datadir, 0.15, image_size, args.batch_size)
+    dataloaders = utils.get_train_val_dataloaders(
+        datadir, 0.15, image_size, args.batch_size
+    )
     print(dataloaders)
 
     model = build_model_from_args(args.model)
-    model = utils.fit_model_last_to_dataset(
-        model, dataloaders['train'].dataset)
+    model = utils.fit_model_last_to_dataset(model, dataloaders['train'].dataset)
 
-    optimizer = build_attr(torch.optim, optim_args,
-                           first_arg=model.parameters())
+    optimizer = build_attr(torch.optim, optim_args, first_arg=model.parameters())
     criterion = build_attr(torch.nn, criterion_args)
-    lr_scheduler = build_attr(torch.optim.lr_scheduler,
-                              lr_scheduler_args, first_arg=optimizer)
+    lr_scheduler = build_attr(
+        torch.optim.lr_scheduler, lr_scheduler_args, first_arg=optimizer
+    )
 
-    trainable = Trainable(dataloaders, model, criterion, optimizer, lr_scheduler,
-                          outdir)
+    trainable = Trainable(
+        dataloaders, model, criterion, optimizer, lr_scheduler, outdir
+    )
     return trainable
 
 
@@ -109,11 +128,11 @@ def load_args(args):
 
 if __name__ == '__main__':
     from train_args import train_args
+
     global args
     args = train_args
     print()
-    print(f'*** BEGINNING EXPERIMENT: "{args.experiment_name}" ***',
-          end="\n\n")
+    print(f'*** BEGINNING EXPERIMENT: "{args.experiment_name}" ***', end="\n\n")
 
     # load args from a previous train session if requested
     if args.load_args:
@@ -125,8 +144,9 @@ if __name__ == '__main__':
     dataset_name = os.path.basename(args.data_dir)
     # Make the output directory for the experiment
     global outdir
-    outdir = os.path.join(EXPERIMENTS_ROOT, args.experiment_name, dataset_name,
-                          args.model[0])
+    outdir = os.path.join(
+        EXPERIMENTS_ROOT, args.experiment_name, dataset_name, args.model[0]
+    )
 
     if args.use_previous_model:
         prev_model_file = os.path.join(args.load_args, "model.pth")

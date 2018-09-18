@@ -4,12 +4,14 @@ import random
 
 import pretrainedmodels
 import torch
+from deprecated import deprecated
 from strconv import convert
 
 import src.custom_models
 import torchvision
-from common_constants import (DEFAULT_IMAGE_SIZE, MODEL_TO_IMAGE_SIZE,
-                              PHASE_ORDER, DEFAULT_VAL_PROPORTION, DEFAULT_BATCH_SIZE)
+from common_constants import (DEFAULT_BATCH_SIZE, DEFAULT_IMAGE_SIZE,
+                              DEFAULT_VAL_PROPORTION, MODEL_TO_IMAGE_SIZE,
+                              PHASE_ORDER)
 from torchvision import datasets, transforms
 
 
@@ -20,13 +22,10 @@ def SORT_BY_PHASE_FN(item):
         return ord(item[0])  # THIS IS BAD CODE
 
 
-# class_names = image_datasets['train'].classes
-
-
 # Normalization parameters.
 # See https://pytorch.org/docs/stable/torchvision/models.html for these values
-means = (0.485, 0.456, 0.406)
-stds = (0.229, 0.224, 0.225)
+MEANS = (0.485, 0.456, 0.406)
+STDS = (0.229, 0.224, 0.225)
 
 
 def determine_image_size(model_name):
@@ -62,14 +61,14 @@ def make_transform_dict(image_size=DEFAULT_IMAGE_SIZE):
                 # convert to PyTorch tensor
                 transforms.ToTensor(),
                 # normalize
-                transforms.Normalize(means, stds),
+                transforms.Normalize(MEANS, STDS),
             ]
         ),
         "val": transforms.Compose(
             [
                 transforms.CenterCrop(image_size),
                 transforms.ToTensor(),
-                transforms.Normalize(means, stds),
+                transforms.Normalize(MEANS, STDS),
             ]
         ),
     }
@@ -89,39 +88,42 @@ def get_dataset_sizes(dataloaders):
     """
 
     dataset_sizes = {  # sizes for our progress bar
-        phase: len(loader.dataset)
-        for phase, loader in dataloaders.items()
+        phase: len(loader.dataset) for phase, loader in dataloaders.items()
     }
     return dataset_sizes
 
 
-def get_train_val_dataloaders(datadir, val_proportion=DEFAULT_VAL_PROPORTION,
-                             image_size=DEFAULT_IMAGE_SIZE, batch_size=16,
-                             shuffle_seed=None):
+def get_train_val_dataloaders(
+    datadir,
+    val_proportion=DEFAULT_VAL_PROPORTION,
+    image_size=DEFAULT_IMAGE_SIZE,
+    batch_size=16,
+    shuffle_seed=None,
+):
     image_transforms = make_transform_dict(image_size)
     full_train_set = datasets.ImageFolder(datadir)
 
-    train_set, val_set = dataset_stratified_train_val_split(full_train_set, val_proportion, image_transforms, 
-                                                    shuffle_seed)
-    image_datasets = {
-        'train': train_set,
-        'val': val_set
-    }
+    train_set, val_set = dataset_stratified_train_val_split(
+        full_train_set, val_proportion, image_transforms, shuffle_seed
+    )
+    image_datasets = {"train": train_set, "val": val_set}
     # make dataloaders for each of the datasets above
     num_gpus = torch.cuda.device_count()
     dataloaders = {
         subset: torch.utils.data.DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=True,
-            num_workers=num_gpus * 4,
+            dataset, batch_size=batch_size, shuffle=True, num_workers=num_gpus * 4
         )
         for subset, dataset in image_datasets.items()
     }
     return dataloaders
 
 
-def dataset_stratified_train_val_split(full_train_set, val_proportion=DEFAULT_VAL_PROPORTION, image_transforms=None, shuffle_seed=None):
+def dataset_stratified_train_val_split(
+    full_train_set,
+    val_proportion=DEFAULT_VAL_PROPORTION,
+    image_transforms=None,
+    shuffle_seed=None,
+):
     train_set = copy.copy(full_train_set)
     val_set = copy.copy(full_train_set)
 
@@ -150,26 +152,34 @@ def dataset_stratified_train_val_split(full_train_set, val_proportion=DEFAULT_VA
     val_set.samples = val_samples
     # set the transforms
     if image_transforms:
-        train_set.transform = image_transforms['train']
-        val_set.transform = image_transforms['val']
+        train_set.transform = image_transforms["train"]
+        val_set.transform = image_transforms["val"]
 
     return train_set, val_set
 
 
-# seed for train-val-shuffle
-def get_dataloaders(data_dir, subsets, include_paths=False,
-                    image_size=DEFAULT_IMAGE_SIZE, batch_size=DEFAULT_BATCH_SIZE, shuffle=True):
-
+@deprecated
+def get_dataloaders(
+    data_dir,
+    subsets,
+    include_paths=False,
+    image_size=DEFAULT_IMAGE_SIZE,
+    batch_size=DEFAULT_BATCH_SIZE,
+    shuffle=True,
+):
     _, dataloaders = get_datasets_and_loaders(**locals())
-
-    # # set the dataloader length to be the length of the dataset
-    # for subset, dataloader in dataloaders.items():
-    #     dataloader.__len__ = len(datasets[subset]) / batch_size
     return dataloaders
 
 
-def get_datasets_and_loaders(data_dir, subsets, include_paths=False,
-                             image_size=DEFAULT_IMAGE_SIZE, batch_size=DEFAULT_BATCH_SIZE, shuffle=True):
+@deprecated
+def get_datasets_and_loaders(
+    data_dir,
+    subsets,
+    include_paths=False,
+    image_size=DEFAULT_IMAGE_SIZE,
+    batch_size=DEFAULT_BATCH_SIZE,
+    shuffle=True,
+):
     """Get dataset and DataLoader for a given data root directory
     Arguments:
         data_dir {string} -- path of directory
@@ -184,7 +194,7 @@ def get_datasets_and_loaders(data_dir, subsets, include_paths=False,
         tuple -- datasets, dataloaders
     """
     if type(subsets) is str:
-        subsets = (subsets, )
+        subsets = (subsets,)
 
     data_transforms = make_transform_dict(image_size)
 
@@ -193,8 +203,7 @@ def get_datasets_and_loaders(data_dir, subsets, include_paths=False,
     im_folder_class = ImageFolderWithPaths if include_paths else datasets.ImageFolder
     # get the datasets for each given subset, e.g. train, val, test
     image_datasets = {
-        subset: im_folder_class(os.path.join(
-            data_dir, subset), data_transforms[subset])
+        subset: im_folder_class(os.path.join(data_dir, subset), data_transforms[subset])
         for subset in subsets
     }
     # make dataloaders for each of the datasets above
@@ -270,13 +279,6 @@ def fit_model_last_to_dataset(model, dataset):
 
 def get_model_name_from_fn(model_fn):
     return str(model_fn).split()[1]
-
-
-# def make_dataloaders_from_model_input_size(datadir, model_fn, batch_size):
-#     model_name = get_model_name_from_fn(model_fn)
-#     image_size = determine_image_size(model_name)
-#     return get_dataloaders(datadir, ('train', 'val'), image_size=image_size,
-#                            batch_size=batch_size)
 
 
 def build_model_from_args(model_args):

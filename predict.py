@@ -16,8 +16,10 @@ from common_constants import EXPERIMENTS_ROOT, META_FNAME, MODEL_PARAMS_FNAME
 # name for output. will have subset prepended to it later
 PREDICT_BASENAME = "predictions.csv"
 
+
 def get_device():
     return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 def create_predictions(load_dir, subset='val', alternate_data_dir=False):
     """Create predictions file using the model from an experiment directory.
@@ -38,8 +40,7 @@ def create_predictions(load_dir, subset='val', alternate_data_dir=False):
     meta_dict = get_meta_dict_from_load_dir(load_dir)
     # if the user specifies a different dataset to predict on for some reason,
     # maybe for fun, use it. else just use the dataset specified in the meta
-    data_dir = alternate_data_dir if alternate_data_dir \
-        else meta_dict["data_dir"]
+    data_dir = alternate_data_dir if alternate_data_dir else meta_dict["data_dir"]
 
     dataset, dataloader = get_subset_dataset_and_loader(data_dir, subset)
 
@@ -50,8 +51,9 @@ def create_predictions(load_dir, subset='val', alternate_data_dir=False):
     model = load_model(model_path, meta_dict, num_classes, device)
 
     # get where we will write results to
-    results_file = prepare_results_csv(load_dir, subset, dataset.classes,
-                                       alternate_data_dir)
+    results_file = prepare_results_csv(
+        load_dir, subset, dataset.classes, alternate_data_dir
+    )
     print("Writing results to", results_file)
 
     with tqdm(desc="Predict", total=len(dataset)) as pbar:
@@ -65,8 +67,9 @@ def create_predictions(load_dir, subset='val', alternate_data_dir=False):
                 raw_outputs = model(inputs)
                 outputs = torch.nn.Softmax(dim=1)(raw_outputs)
 
-            write_batch_prediction(dataset.classes, input_paths, labels,
-                                   outputs, results_file)
+            write_batch_prediction(
+                dataset.classes, input_paths, labels, outputs, results_file
+            )
 
             pbar.update(inputs.size(0))
     # return the path to the results file
@@ -103,7 +106,8 @@ def get_subset_dataset_and_loader(data_dir, subset, batch_size=4):
 
     # Get our DataLoader
     datasets, dataloaders = utils.get_datasets_and_loaders(
-        data_dir, subset, include_paths=True, batch_size=batch_size, shuffle=False)
+        data_dir, subset, include_paths=True, batch_size=batch_size, shuffle=False
+    )
     dataset = datasets[subset]
     dataloader = dataloaders[subset]
 
@@ -128,10 +132,13 @@ def load_model(model_path, meta_dict, num_classes, device="cpu"):
 
     try:
         model.load_state_dict(
-            torch.load(model_path, map_location=lambda storage, loc: storage))
+            torch.load(model_path, map_location=lambda storage, loc: storage)
+        )
     except FileNotFoundError:
-        print("No model file found. Did training finish? " +
-              f'Make sure the model file is named "{MODEL_PARAMS_FNAME}".')
+        print(
+            "No model file found. Did training finish? "
+            + f'Make sure the model file is named "{MODEL_PARAMS_FNAME}".'
+        )
         exit(1)
 
     # move to GPU or CPU and set to eval mode
@@ -141,10 +148,7 @@ def load_model(model_path, meta_dict, num_classes, device="cpu"):
     return model
 
 
-def prepare_results_csv(load_dir,
-                        subset,
-                        class_names,
-                        alternate_data_dir=False):
+def prepare_results_csv(load_dir, subset, class_names, alternate_data_dir=False):
     """Prepares the results csv by creating the file and adding a column header.
 
     If alternate_data_dir is used, the name of that dataset is prepended to the
@@ -180,8 +184,7 @@ def prepare_results_csv(load_dir,
     return results_filepath
 
 
-def write_batch_prediction(class_names, input_paths, labels, outputs,
-                           results_file):
+def write_batch_prediction(class_names, input_paths, labels, outputs, results_file):
     """Write labels, and outputs to file
     
     Arguments:
@@ -199,12 +202,14 @@ def write_batch_prediction(class_names, input_paths, labels, outputs,
         label_class = class_names[labels[index]]
         predicted_class = class_names[predictions[index]]
 
-        write_row_prediction(image_name, row, label_class, predicted_class,
-                             results_file)
+        write_row_prediction(
+            image_name, row, label_class, predicted_class, results_file
+        )
 
 
-def write_row_prediction(image_name, row, label_class_name,
-                         predicted_class_name, results_file):
+def write_row_prediction(
+    image_name, row, label_class_name, predicted_class_name, results_file
+):
     """Writes a single prediction row to file in csv format.
     Written format:
     "image_name, [row_values], label_class, predicted_class"
@@ -232,22 +237,28 @@ def write_row_prediction(image_name, row, label_class_name,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="See model predictions and class probabilities on a \
-        data subset.")
+        data subset."
+    )
     parser.add_argument(
         "load_dir",
-        help="Directory to load the model from. Typically a " +
-        f'leaf directory under "{EXPERIMENTS_ROOT}/""')
+        help="Directory to load the model from. Typically a "
+        + f'leaf directory under "{EXPERIMENTS_ROOT}/""',
+    )
     parser.add_argument(
-        "-d", "--data_dir", default=False,
+        "-d",
+        "--data_dir",
+        default=False,
         help="Root directory of dataset to use, with classes \
                         separated into separate subdirectories. Default is \
-                        the dataset used for training.")
+                        the dataset used for training.",
+    )
     parser.add_argument(
         "-s",
         "--subset",
         default="val",
-        help="Which subset of the dataset to evaluate on. " +
-        "E.g. 'train', 'val', or 'test' (default: 'val').")
+        help="Which subset of the dataset to evaluate on. "
+        + "E.g. 'train', 'val', or 'test' (default: 'val').",
+    )
     args = parser.parse_args()
 
     create_predictions(args.load_dir, args.subset, args.data_dir)

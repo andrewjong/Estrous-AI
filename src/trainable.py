@@ -10,8 +10,12 @@ import torch
 import src.utils as utils
 from tqdm import tqdm
 
-from common_constants import (META_FNAME, MODEL_PARAMS_FNAME, TRAIN_RESULTS_FNAME,
-                              PREDICT_RESULTS_FNAME)
+from common_constants import (
+    META_FNAME,
+    MODEL_PARAMS_FNAME,
+    TRAIN_RESULTS_FNAME,
+    PREDICT_RESULTS_FNAME,
+)
 
 
 class Trainable:
@@ -22,8 +26,9 @@ class Trainable:
     All neural network model choices should extend this class.
     """
 
-    def __init__(self, dataloaders, model, criterion, optimizer, lr_scheduler=None,
-                 outdir=None):
+    def __init__(
+        self, dataloaders, model, criterion, optimizer, lr_scheduler=None, outdir=None
+    ):
         """Initialize common train hyperparameters. These hyperparameters must
         be set
 
@@ -56,13 +61,13 @@ class Trainable:
         """
 
         pretrained_weights_dict = torch.load(
-            weights_file, map_location=lambda storage, loc: storage)
+            weights_file, map_location=lambda storage, loc: storage
+        )
 
         model_dict = self.model.state_dict()
         excluded = ['fc.weight', 'fc.bias', 'last_linear.weight']
         pretrained_weights_dict = {
-            k: v
-            for k, v in pretrained_weights_dict.items() if k not in excluded
+            k: v for k, v in pretrained_weights_dict.items() if k not in excluded
         }
         model_dict.update(pretrained_weights_dict)
         self.model.load_state_dict(model_dict)
@@ -127,9 +132,11 @@ class Trainable:
 
                 # WRITE WHAT HAPPENED
                 if subset == "train":
-                    step_num = int((epoch + 1) *
-                                   self.dataset_sizes["train"] /
-                                   self.dataloaders['train'].batch_size)
+                    step_num = int(
+                        (epoch + 1)
+                        * self.dataset_sizes["train"]
+                        / self.dataloaders['train'].batch_size
+                    )
                     # write train loss and accuracy
                     if self.results_filepath:
                         with open(self.results_filepath, "a") as f:
@@ -146,8 +153,7 @@ class Trainable:
                     # IF we did better, update our saved best
                     if subset_acc > self.best_val_accuracy:
                         self._store_best(subset_acc, train_acc, train_loss)
-                        best_model_weights = copy.deepcopy(
-                            self.model.state_dict())
+                        best_model_weights = copy.deepcopy(self.model.state_dict())
                         if self.early_stop_limit:  # reset early stop counter
                             self.early_stop_counter = 0
                     # ELSE update our early stop counter
@@ -157,8 +163,7 @@ class Trainable:
             print() if self._verbose else None  # spacer between epochs
             self.finished_epochs = epoch + 1
             if self.interrupted:
-                print("Training stopped early at",
-                      self.finished_epochs, "epochs.")
+                print("Training stopped early at", self.finished_epochs, "epochs.")
                 break
 
         # load best model weights
@@ -210,8 +215,12 @@ class Trainable:
 
         description = self._make_pbar_description(epoch, subset)
         # progress bar for each epoch subset
-        with tqdm(desc=description, total=self.dataset_sizes[subset], leave=False,
-                  unit="images",) as pbar:
+        with tqdm(
+            desc=description,
+            total=self.dataset_sizes[subset],
+            leave=False,
+            unit="images",
+        ) as pbar:
 
             # iterate over data
             for inputs, labels in self.dataloaders[subset]:
@@ -233,8 +242,7 @@ class Trainable:
                 # we multiply by input size, because loss.item() is
                 # only for a single example in our batch.
                 running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(predictions ==
-                                              labels.data)
+                running_corrects += torch.sum(predictions == labels.data)
 
                 # update pbar with size of our batch
                 pbar.update(inputs.size(0))
@@ -245,8 +253,10 @@ class Trainable:
         subset_acc = running_corrects.double() / self.dataset_sizes[subset]
         # print results for this epoch subset
         if self._verbose:
-            print(f"{subset.capitalize()} "
-                  + f"Loss: {subset_loss:.4f}, Acc: {subset_acc:.4f}")
+            print(
+                f"{subset.capitalize()} "
+                + f"Loss: {subset_loss:.4f}, Acc: {subset_acc:.4f}"
+            )
 
         return subset_loss, subset_acc
 
@@ -265,8 +275,10 @@ class Trainable:
     def _increment_stop_limit(self):
         if self._verbose:
             remaining = self.early_stop_limit - self.early_stop_counter
-            print('Model did not perform better.' +
-                  f'Remaining tries: {remaining}/{self.early_stop_limit}')
+            print(
+                'Model did not perform better.'
+                + f'Remaining tries: {remaining}/{self.early_stop_limit}'
+            )
         if self.early_stop_counter >= self.early_stop_limit:
             self.interrupted = True
 
@@ -277,8 +289,7 @@ class Trainable:
             print("-" * 10)
 
     def _train_setup(self, early_stop_limit, verbose):
-        self.device = torch.device(
-            "cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # choose the best compute device
         self.model = self.model.to(self.device)
         self.best_val_accuracy = 0.0
@@ -289,15 +300,19 @@ class Trainable:
 
         self._verbose = verbose
 
-        self.results_filepath = self._prepare_train_results()  # for writing epoch results
+        self.results_filepath = (
+            self._prepare_train_results()
+        )  # for writing epoch results
         self.start_time = time.time()  # to keep track of elapsed time
         pass
 
     def _print_train_summary(self):
         self.end_time = time.time()
         self.train_time = self.end_time - self.start_time
-        print(f"Training completed in {int(self.train_time // 60)}m "
-              + f"{int(self.train_time % 60)}s")
+        print(
+            f"Training completed in {int(self.train_time // 60)}m "
+            + f"{int(self.train_time % 60)}s"
+        )
         print(f"Best validation accuracy: {self.best_val_accuracy:.4f}")
         print(f"Associated train accuracy: {self.associated_train_accuracy:.4f}")
         print(f"Associated train loss: {self.associated_train_loss:.4f}")

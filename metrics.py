@@ -73,8 +73,14 @@ def create_confusion_matrix_plots(predictions_file, out_file):
     fig_normalized.savefig(norm_outfile_name)
 
 
-def plot_confusion_matrix(confusion_matrix, class_names, normalize=False,
-                          figsize=(10, 7), fontsize=14, cmap='Blues'):
+def plot_confusion_matrix(
+    confusion_matrix,
+    class_names,
+    normalize=False,
+    figsize=(10, 7),
+    fontsize=14,
+    cmap='Blues',
+):
     """Plots a labeled and colored confusion matrix image. True labels are on
     the y-axis and predicted labels on the x-axis. A colorbar is placed on the
     right.
@@ -97,28 +103,27 @@ def plot_confusion_matrix(confusion_matrix, class_names, normalize=False,
 
     # normalize (along axis 1, i.e. horizontally) if requested
     if normalize:
-        confusion_matrix = confusion_matrix / \
-            confusion_matrix.sum(axis=1)[:, np.newaxis]
+        confusion_matrix = (
+            confusion_matrix / confusion_matrix.sum(axis=1)[:, np.newaxis]
+        )
         vmin, vmax = 0.0, 1.0
     else:
         vmin, vmax = 0, None
     # make a dataframe with rows and columns labeled as class names
-    df_cm = pd.DataFrame(
-        confusion_matrix, index=class_names, columns=class_names,
-    )
+    df_cm = pd.DataFrame(confusion_matrix, index=class_names, columns=class_names)
 
     fig = plt.figure(figsize=figsize)  # make a figure
     fmt = "0.2f" if normalize else "d"  # number format
     # make the confusion matrix as a heatmap for colors
-    heatmap = sns.heatmap(df_cm, vmin=vmin, vmax=vmax,
-                          annot=True, fmt=fmt, cmap=cmap)
+    heatmap = sns.heatmap(df_cm, vmin=vmin, vmax=vmax, annot=True, fmt=fmt, cmap=cmap)
 
     # set our axis tick labels for the classes
     heatmap.yaxis.set_ticklabels(
-        heatmap.yaxis.get_ticklabels(), rotation=0, ha='right',
-        fontsize=fontsize)
-    heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(
-    ), rotation=45, ha='right', fontsize=fontsize)
+        heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=fontsize
+    )
+    heatmap.xaxis.set_ticklabels(
+        heatmap.xaxis.get_ticklabels(), rotation=45, ha='right', fontsize=fontsize
+    )
     # set the x and y axis label
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
@@ -133,10 +138,13 @@ if __name__ == "__main__":
     # setup parser if running script as standalone
     parser = argparse.ArgumentParser(
         description="Calculate and write performance metrics for model \
-        predictions.")
-    parser.add_argument("predictions_file",
-                        help='Predictions file to generate metrics for, \
-                        typically "*_predictions.csv".')
+        predictions."
+    )
+    parser.add_argument(
+        "predictions_file",
+        help='Predictions file to generate metrics for, \
+                        typically "*_predictions.csv".',
+    )
     args = parser.parse_args()
     # output to the same directory that the file lives in
     outdir = os.path.dirname(args.predictions_file)

@@ -5,19 +5,24 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import src.utils as utils
-from src.utils import means, stds
+from src.utils import MEANS, STDS
 
 parser = argparse.ArgumentParser(
-    description="View the transforms established in utils.py on the train set")
-parser.add_argument("data_dir",
-                    help='Root directory of dataset to use, with classes \
-                    separated into separate subdirectories.')
-parser.add_argument("-n", "--number", default=20,
-                    help="How many images to view (default: 20).")
+    description="View the transforms established in utils.py on the train set"
+)
+parser.add_argument(
+    "data_dir",
+    help='Root directory of dataset to use, with classes \
+                    separated into separate subdirectories.',
+)
+parser.add_argument(
+    "-n", "--number", default=20, help="How many images to view (default: 20)."
+)
 args = parser.parse_args()
 
 datasets, dataloaders = utils.get_datasets_and_loaders(
-    args.data_dir, "train", include_paths=True, batch_size=1)
+    args.data_dir, "train", include_paths=True, batch_size=1
+)
 
 dataset, dataloader = datasets["train"], dataloaders["train"]
 
@@ -36,11 +41,13 @@ class DataScroller(object):
 
     def onscroll(self, event):
         # print("%s %s" % (event.button, event.step))
-        if (hasattr(event, 'button') and event.button == 'up') or \
-                (hasattr(event, 'key') and event.key == 'right'):
+        if (hasattr(event, 'button') and event.button == 'up') or (
+            hasattr(event, 'key') and event.key == 'right'
+        ):
             self.ind = (self.ind + 1) % self.num_samples
-        elif (hasattr(event, 'button') and event.button == 'down') or \
-                (hasattr(event, 'key') and event.key == 'left'):
+        elif (hasattr(event, 'button') and event.button == 'down') or (
+            hasattr(event, 'key') and event.key == 'left'
+        ):
             self.ind = (self.ind - 1) % self.num_samples
         else:
             return
@@ -61,14 +68,13 @@ class DataScroller(object):
         self.im2.axes.figure.canvas.draw()
 
 
-
 fig, (ax1, ax2) = plt.subplots(1, 2)
 
 # append to our nparrays
 first_image_tensor, first_label_tensor, first_path = next(iter(dataloader))
 images = first_image_tensor.numpy()  # convert tensor to numpy
 labels = first_label_tensor.numpy()  # convert tensor to numpy
-paths = np.asarray(first_path)       # convert tuple to numpy
+paths = np.asarray(first_path)  # convert tuple to numpy
 for _ in range(args.number - 1):
     image_tensor, label_tensor, path_tuple = next(iter(dataloader))
     images = np.append(images, image_tensor.numpy(), 0)
@@ -80,7 +86,7 @@ for _ in range(args.number - 1):
 images = images.transpose((0, 2, 3, 1))
 
 # unnormalize the images for matplotlib
-images = np.array(stds) * images + np.array(means)
+images = np.array(STDS) * images + np.array(MEANS)
 images = np.clip(images, 0, 1)
 
 tracker = DataScroller(fig, ax1, ax2, images, labels, paths)

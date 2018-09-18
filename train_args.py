@@ -2,48 +2,58 @@ import argparse
 
 kwargs_help = "Pass additional keyword arguments by adding [argument]=[value] "
 parser = argparse.ArgumentParser(
-    description="Train an estrous cycle cell-phase classifer model.")
+    description="Train an estrous cycle cell-phase classifer model."
+)
 
 parser.add_argument(
-    "-e", "--experiment_name",
+    "-e",
+    "--experiment_name",
     help='Name of the experiment. This becomes the subdirectory that the \
     experiment output is stored in, i.e. "experiments/my_experiment/" \
-    (default: "unnamed_experiment").'
+    (default: "unnamed_experiment").',
 )
 parser.add_argument(
-    "-d", "--data_dir",
+    "-d",
+    "--data_dir",
     help='Root directory of dataset to use, with classes separated into \
-    separate subdirectories.'
+    separate subdirectories.',
 )
 parser.add_argument(
-    "-m", "--model",
+    "-m",
+    "--model",
     nargs="+",
     help="Choose which model to use, either from torchvision or impelmented \
-    here. " + kwargs_help + "e.g. 'num_classes=4' The list of keyword \
+    here. "
+    + kwargs_help
+    + "e.g. 'num_classes=4' The list of keyword \
     arguments per model are in the source code. Will add pretrained=True by \
-    default."
+    default.",
 )
 parser.add_argument(
-    "-o", "--optimizer",
+    "-o",
+    "--optimizer",
     nargs="+",
     default=['SGD', "lr=0.001", "momentum=0.9"],
     help="Choose the optimizer from torch.optim to use for training."
-    + kwargs_help + "e.g. 'lr=0.001'. \
-    (default: ['SGD', 'lr=0.001', 'momentum=0.9'])."
+    + kwargs_help
+    + "e.g. 'lr=0.001'. \
+    (default: ['SGD', 'lr=0.001', 'momentum=0.9']).",
 )
 parser.add_argument(
-    "-s", "--lr_scheduler",
+    "-s",
+    "--lr_scheduler",
     nargs="+",
     default=None,
     help="Choose a learning rate scheduler from torch.optim.lr_scheduler. \
-    Typically only used with SGD (default: None)."
+    Typically only used with SGD (default: None).",
 )
 parser.add_argument(
-    "-c", "--criterion",
+    "-c",
+    "--criterion",
     nargs="+",
     default=['CrossEntropyLoss'],
     help="Criterion, i.e. loss function to use. See torch.nn.modules.loss for \
-    options."
+    options.",
 )
 parser.add_argument(
     "-t",
@@ -51,7 +61,7 @@ parser.add_argument(
     choices=['finetune', 'fixed', None],
     default='finetune',
     help="Choose between finetune or fixed technique for transfer learning \
-    (default: 'finetune')."
+    (default: 'finetune').",
 )
 # TODO: replace the above transfer_technique arg with the code below.
 # parser.add_argument(
@@ -62,16 +72,15 @@ parser.add_argument(
 #     feature extractor (default: 1)."
 # )
 parser.add_argument(
-    "-n", "--num_epochs",
-    type=int, metavar="N",
+    "-n",
+    "--num_epochs",
+    type=int,
+    metavar="N",
     default=50,
-    help="Number of epochs to train for (default: 50)."
+    help="Number of epochs to train for (default: 50).",
 )
 parser.add_argument(
-    "-b", "--batch_size",
-    type=int,
-    default=4,
-    help="Select a batch size."
+    "-b", "--batch_size", type=int, default=4, help="Select a batch size."
 )
 parser.add_argument(
     "-l",
@@ -79,25 +88,26 @@ parser.add_argument(
     nargs="?",
     help="Option to load in train args from a previous train session using \
     that session's \"meta.json\" file. Passed and default args will override \
-    loaded args."
+    loaded args.",
 )
 parser.add_argument(
     "-p",
     "--use_previous_model",
     action='store_true',
     help="Continue training from the model.pth file created from a previous \
-    train run. Must have --load_args argument passed in.")
+    train run. Must have --load_args argument passed in.",
+)
 parser.add_argument(
     "--skip_metrics",
     action='store_true',
     help="Choose to NOT run predict.py and metrics.py on the validation-set \
-    after training, i.e. do not calculate performance metrics."
+    after training, i.e. do not calculate performance metrics.",
 )
 parser.add_argument(
     "--overwrite",
     action='store_true',
     help="Skip the prompt that double checks whether to overwrite existing \
-    files. Existing files will be overwritten."
+    files. Existing files will be overwritten.",
 )
 
 train_args = parser.parse_args()

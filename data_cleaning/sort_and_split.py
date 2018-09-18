@@ -34,36 +34,54 @@ cwd = os.getcwd()
 
 # set up command line arguments
 parser = argparse.ArgumentParser(description=DOC)
+parser.add_argument("labels_file", help="CSV file containing the labels for each image")
 parser.add_argument(
-    "labels_file", help="CSV file containing the labels for each image")
+    "from_dir", help="Root directory of where the unsorted images currently are"
+)
 parser.add_argument(
-    "from_dir",
-    help="Root directory of where the unsorted images currently are")
-parser.add_argument("to_dir", nargs='?',
-                    default=os.path.join("..", "data", "lavage"),
-                    help="OPTIONAL. Root directory of where to put the sorted \
-                    images (default: '../data/lavage/')")
-parser.add_argument("-s", "--split", nargs=3, type=int, default=[70, 15, 15],
-                    help="Split percentages for train, validation, and test \
+    "to_dir",
+    nargs='?',
+    default=os.path.join("..", "data", "lavage"),
+    help="OPTIONAL. Root directory of where to put the sorted \
+                    images (default: '../data/lavage/')",
+)
+parser.add_argument(
+    "-s",
+    "--split",
+    nargs=3,
+    type=int,
+    default=[70, 15, 15],
+    help="Split percentages for train, validation, and test \
                     sets respectively. E.g. '70 15 15'. Numbers must add up \
-                    to 100! (default: 70 train, 15 val, 15 test).")
-parser.add_argument("-g", "--grouped_classes", nargs='+',
-                    type=list, default=['1', '2', '3', '4'],
-                    help='Group phases into classes by phase number. The ' +
-                    'phase numbers for proestrus, estrus, metestrus, and ' +
-                    'diestrus are 1, 2, 3, and 4 respectively. E.g. passing ' +
-                    'in "123 4" would group proestrus-estrus-metestrus as ' +
-                    'one prediction class and diestrus as another.')
-parser.add_argument("-e", "--exclude", nargs='+',
-                    help='Exclude files with the specified strings in their \
+                    to 100! (default: 70 train, 15 val, 15 test).",
+)
+parser.add_argument(
+    "-g",
+    "--grouped_classes",
+    nargs='+',
+    type=list,
+    default=['1', '2', '3', '4'],
+    help='Group phases into classes by phase number. The '
+    + 'phase numbers for proestrus, estrus, metestrus, and '
+    + 'diestrus are 1, 2, 3, and 4 respectively. E.g. passing '
+    + 'in "123 4" would group proestrus-estrus-metestrus as '
+    + 'one prediction class and diestrus as another.',
+)
+parser.add_argument(
+    "-e",
+    "--exclude",
+    nargs='+',
+    help='Exclude files with the specified strings in their \
                     file paths. E.g. "40x" would ignore all images with file \
                     paths containing "40x". Exclude strings are case \
-                    insensitive.')
+                    insensitive.',
+)
 args = parser.parse_args()
 # make sure split is valid, i.e. sums to 100
 split_sum = sum(args.split)
-assert split_sum == 100, "Split percentages must sum to 100. Sum=" + \
-    str(split_sum) + "."
+assert split_sum == 100, (
+    "Split percentages must sum to 100. Sum=" + str(split_sum) + "."
+)
 
 
 # map phase numbers to the correct phase label. this is for sorting the excel
@@ -72,17 +90,15 @@ PHASE_NUM_TO_LABEL = {
     '1': "proestrus",
     '2': "estrus",
     '3': "metestrus",
-    '4': "diestrus"
+    '4': "diestrus",
 }
 
 # each label points to an array of filepaths to copy later
-labels_to_files = {label: []
-                   for label in PHASE_NUM_TO_LABEL.values()}
+labels_to_files = {label: [] for label in PHASE_NUM_TO_LABEL.values()}
 
 # read our spreadsheet
 labels_df = pd.read_csv(args.labels_file, index_col=0, dtype=str)
-print(f'Reading labels for {len(labels_df)} animals from ' +
-      f'"{args.labels_file}".')
+print(f'Reading labels for {len(labels_df)} animals from ' + f'"{args.labels_file}".')
 
 print(f'Reading images from "{args.from_dir}".')
 print(f'Sorting files...')
@@ -108,15 +124,15 @@ with tqdm(total=len(labels_df), unit="sort") as pbar:
                 # images are named starting with "AnimalNumber_Date"
                 f_name = animal_label + "_" + date_label
                 # includes subdirectories in search with "**"
-                search_glob = os.path.join(
-                    args.from_dir, "**", f_name + "*")
+                search_glob = os.path.join(args.from_dir, "**", f_name + "*")
                 # match each found file to the appropriate phase label
                 for filepath in glob.glob(search_glob, recursive=True):
                     # make sure the filepath does not have any of the exclude
                     # words
-                    if not args.exclude or all(exclusion.lower() not in
-                                               filepath.lower() for exclusion
-                                               in args.exclude):
+                    if not args.exclude or all(
+                        exclusion.lower() not in filepath.lower()
+                        for exclusion in args.exclude
+                    ):
                         labels_to_files[phase_label].append(filepath)
 
         pbar.update(1)
@@ -149,8 +165,7 @@ with tqdm(total=total_files_to_copy, unit="copy") as pbar:
             train_stop = int(train_split_percent * total_files)
             train_files = files[:train_stop]
 
-            val_stop = int(
-                (train_split_percent + val_split_percent) * total_files)
+            val_stop = int((train_split_percent + val_split_percent) * total_files)
             val_files = files[train_stop:val_stop]
 
             test_files = files[val_stop:]
@@ -159,7 +174,8 @@ with tqdm(total=total_files_to_copy, unit="copy") as pbar:
             for split_set in ("train", "val", "test"):
                 # make the directory for the given split set
                 sorted_dir = os.path.join(
-                    args.to_dir, split_set, "_".join(group_labels))
+                    args.to_dir, split_set, "_".join(group_labels)
+                )
                 os.makedirs(sorted_dir, exist_ok=True)
                 # put the appropriate files in the directory we made
                 split_set_files = locals()[split_set + "_files"]

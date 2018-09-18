@@ -6,10 +6,7 @@ PREDICT_RESULTS_FNAME = "predictions.csv"
 
 PHASE_ORDER = {'p': 1, 'e': 2, 'm': 3, 'd': 4}  # ordering of estrous cycle
 
-MODEL_TO_IMAGE_SIZE = {
-    "inception": 299,
-    "nasnetalarge": 331
-}
+MODEL_TO_IMAGE_SIZE = {"inception": 299, "nasnetalarge": 331}
 DEFAULT_IMAGE_SIZE = 224
 DEFAULT_VAL_PROPORTION = 0.15
 DEFAULT_BATCH_SIZE = 16
