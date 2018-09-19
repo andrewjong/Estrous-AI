@@ -9,9 +9,13 @@ from strconv import convert
 
 import src.custom_models
 import torchvision
-from common_constants import (DEFAULT_BATCH_SIZE, DEFAULT_IMAGE_SIZE,
-                              DEFAULT_VAL_PROPORTION, MODEL_TO_IMAGE_SIZE,
-                              PHASE_ORDER)
+from common_constants import (
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_IMAGE_SIZE,
+    DEFAULT_VAL_PROPORTION,
+    MODEL_TO_IMAGE_SIZE,
+    PHASE_ORDER,
+)
 from torchvision import datasets, transforms
 
 
@@ -101,8 +105,8 @@ def get_train_val_dataloaders(
     shuffle_seed=None,
 ):
     image_transforms = make_transform_dict(image_size)
-    full_train_set = datasets.ImageFolder(datadir)
-
+    # split the full train set into smaller train and val
+    full_train_set = datasets.ImageFolder(os.path.join(datadir, "train"))
     train_set, val_set = dataset_stratified_train_val_split(
         full_train_set, val_proportion, image_transforms, shuffle_seed
     )

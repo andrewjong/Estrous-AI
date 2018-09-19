@@ -55,6 +55,7 @@ def build_and_train_model(model_starter_file=False):
     # Train
     trainable.train(args.num_epochs)
     trainable.save(extra_meta=vars(args))
+    return trainable
 
 
 def build_trainable_from_args(
@@ -86,10 +87,9 @@ def build_trainable_from_args(
     dataloaders = utils.get_train_val_dataloaders(
         datadir, 0.15, image_size, args.batch_size
     )
-    print(dataloaders)
 
     model = build_model_from_args(args.model)
-    model = utils.fit_model_last_to_dataset(model, dataloaders['train'].dataset)
+    model = utils.fit_model_last_to_dataset(model, dataloaders["train"].dataset)
 
     optimizer = build_attr(torch.optim, optim_args, first_arg=model.parameters())
     criterion = build_attr(torch.nn, criterion_args)
@@ -110,7 +110,7 @@ def load_args(args):
     elif os.path.isfile(args.load_args):
         load_args_file = args.load_args
 
-    with open(load_args_file, 'r') as f:
+    with open(load_args_file, "r") as f:
         loaded = json.load(f)
     # only load intersecting arguments, in case the load file has extraneous
     # information
@@ -122,11 +122,11 @@ def load_args(args):
         # if the user did not set the argument, load it
         if not getattr(args, common_arg):
             setattr(args, common_arg, load_value)
-            print(f'  {common_arg}: {load_value}')
+            print(f"  {common_arg}: {load_value}")
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from train_args import train_args
 
     global args
@@ -155,14 +155,16 @@ if __name__ == '__main__':
         prev_model_file = False
 
     # run the main training script
-    build_and_train_model(prev_model_file)
+    trainable = build_and_train_model(prev_model_file)
 
     # calculate performance metrics with the saved model
     # print('skip_metrics: ', args.skip_metrics)
     if not args.skip_metrics:
         print()
         print("Creating predictions file...")
-        predictions_file = create_predictions(outdir)
+        predictions_file = create_predictions(
+            outdir, subset="test", data_dir=args.data_dir, model=trainable.model
+        )
         print("Calculating performance metrics...")
         create_all_metrics(predictions_file, outdir)
     else:

@@ -85,6 +85,7 @@ class Trainable:
         """
         model_file = os.path.join(self.outdir, MODEL_PARAMS_FNAME)
         torch.save(self.model.state_dict(), model_file)
+
         meta_dict = {
             "best_val_accuracy": self.best_val_accuracy,
             "train_accuracy": self.associated_train_accuracy,

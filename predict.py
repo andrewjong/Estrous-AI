@@ -21,7 +21,9 @@ def get_device():
     return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
-def create_predictions(load_dir, subset='val', alternate_data_dir=False):
+def create_predictions(
+    outdir, subset="val", data_dir=None, model=None, alternate_data_dir=None
+):
     """Create predictions file using the model from an experiment directory.
     Uses the experiment directory's "meta.json" file to load model
     architecture and path to dataset.
@@ -37,22 +39,25 @@ def create_predictions(load_dir, subset='val', alternate_data_dir=False):
         dataset than is specified in 'meta.json' (default: {False})
     """
     # load in the meta data created by training
-    meta_dict = get_meta_dict_from_load_dir(load_dir)
     # if the user specifies a different dataset to predict on for some reason,
     # maybe for fun, use it. else just use the dataset specified in the meta
-    data_dir = alternate_data_dir if alternate_data_dir else meta_dict["data_dir"]
+    if not data_dir:
+        meta_dict = get_meta_dict_from_load_dir(outdir)
+        data_dir = alternate_data_dir if alternate_data_dir else meta_dict["data_dir"]
 
     dataset, dataloader = get_subset_dataset_and_loader(data_dir, subset)
 
-    # load the model using the meta data
-    model_path = os.path.join(load_dir, MODEL_PARAMS_FNAME)
-    num_classes = len(dataset.classes)
     device = get_device()
-    model = load_model(model_path, meta_dict, num_classes, device)
+    # load the model using the meta data
+    if not model:
+        model_path = os.path.join(outdir, MODEL_PARAMS_FNAME)
+        num_classes = len(dataset.classes)
+        model = load_model(model_path, meta_dict, num_classes, device)
+    model.eval()  # put in eval mode
 
     # get where we will write results to
     results_file = prepare_results_csv(
-        load_dir, subset, dataset.classes, alternate_data_dir
+        outdir, subset, dataset.classes, alternate_data_dir
     )
     print("Writing results to", results_file)
 
@@ -87,7 +92,7 @@ def get_meta_dict_from_load_dir(load_dir):
         dict -- dictionary parsed from meta.json file
     """
     meta_path = os.path.join(load_dir, META_FNAME)
-    with open(meta_path, 'r') as f:
+    with open(meta_path, "r") as f:
         meta_dict = json.load(f)
     return meta_dict
 
@@ -148,7 +153,7 @@ def load_model(model_path, meta_dict, num_classes, device="cpu"):
     return model
 
 
-def prepare_results_csv(load_dir, subset, class_names, alternate_data_dir=False):
+def prepare_results_csv(load_dir, subset, class_names, alternate_data_dir=None):
     """Prepares the results csv by creating the file and adding a column header.
 
     If alternate_data_dir is used, the name of that dataset is prepended to the
@@ -178,7 +183,7 @@ def prepare_results_csv(load_dir, subset, class_names, alternate_data_dir=False)
     results_filepath = os.path.join(load_dir, out_name)
 
     # put the image name, the classes, the predicted class, and the label
-    header = ','.join(['image_name'] + class_names + ['label', 'predicted'])
+    header = ",".join(["image_name"] + class_names + ["label", "predicted"])
     utils.make_csv_with_header(results_filepath, header)
 
     return results_filepath
@@ -222,19 +227,19 @@ def write_row_prediction(
         predicted_class {string} -- the class name of the prediction
     """
     # keep only the first 4 decimals
-    row_values_as_strings = [f'{value:.4f}' for value in row.cpu().numpy()]
+    row_values_as_strings = [f"{value:.4f}" for value in row.cpu().numpy()]
     # get the actual class names instead of just indices
     # add the class names to the array
     row_values_as_strings.insert(0, image_name)
     row_values_as_strings.extend([label_class_name, predicted_class_name])
     # make the array a single csv string
-    csv_line = ','.join(row_values_as_strings)
+    csv_line = ",".join(row_values_as_strings)
     # write the file
-    with open(results_file, 'a') as f:
-        f.write(csv_line + '\n')
+    with open(results_file, "a") as f:
+        f.write(csv_line + "\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="See model predictions and class probabilities on a \
         data subset."
