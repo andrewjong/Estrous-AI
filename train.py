@@ -166,7 +166,7 @@ if __name__ == "__main__":
             outdir, subset="test", data_dir=args.data_dir, model=trainable.model
         )
         print("Calculating performance metrics...")
-        create_all_metrics(predictions_file, outdir)
+        create_all_metrics(predictions_file, outdir, prefix="test")
     else:
         print("Skipping metrics.")
 
