@@ -320,7 +320,7 @@ class Trainable:
             f"Associated train accuracy: {self.associated_train_accuracy:.4f}",
         ]
 
-        if self.verbose:
+        if self._verbose:
             info.insert(
                 0,
                 f"Training completed in {int(self.train_time // 60)}m "
