@@ -311,7 +311,7 @@ class Trainable:
         self.start_time = time.time()  # to keep track of elapsed time
         pass
 
-    def _print_train_summary(self):
+    def _print_train_summary(self, verbose=self._verbose):
         self.end_time = time.time()
         self.train_time = self.end_time - self.start_time
 
@@ -320,7 +320,7 @@ class Trainable:
             f"Associated train accuracy: {self.associated_train_accuracy:.4f}",
         ]
 
-        if self._verbose:
+        if verbose:
             info.insert(
                 0,
                 f"Training completed in {int(self.train_time // 60)}m "
