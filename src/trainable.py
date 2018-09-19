@@ -1,5 +1,4 @@
 import copy
-import gc
 import json
 import os
 import signal
@@ -7,15 +6,12 @@ import sys
 import time
 
 import torch
-import src.utils as utils
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
-from common_constants import (
-    META_FNAME,
-    MODEL_PARAMS_FNAME,
-    TRAIN_RESULTS_FNAME,
-    PREDICT_RESULTS_FNAME,
-)
+import src.utils as utils
+from common_constants import (META_FNAME, MODEL_PARAMS_FNAME,
+                              TRAIN_RESULTS_FNAME)
 
 
 class Trainable:
@@ -65,7 +61,7 @@ class Trainable:
         )
 
         model_dict = self.model.state_dict()
-        excluded = ['fc.weight', 'fc.bias', 'last_linear.weight']
+        excluded = ["fc.weight", "fc.bias", "last_linear.weight"]
         pretrained_weights_dict = {
             k: v for k, v in pretrained_weights_dict.items() if k not in excluded
         }
@@ -136,7 +132,7 @@ class Trainable:
                     step_num = int(
                         (epoch + 1)
                         * self.dataset_sizes["train"]
-                        / self.dataloaders['train'].batch_size
+                        / self.dataloaders["train"].batch_size
                     )
                     # write train loss and accuracy
                     if self.results_filepath:
@@ -150,6 +146,15 @@ class Trainable:
                     if self.results_filepath:
                         with open(self.results_filepath, "a") as f:
                             f.write(f"{subset_acc}\n")
+
+                    # update the lr scheduler
+                    if self.lr_scheduler:
+                        if isinstance(self.lr_scheduler, ReduceLROnPlateau):
+                            mode = self.lr_scheduler.mode
+                            metrics = subset_acc if mode is "max" else subset_loss
+                            self.lr_scheduler.step(metrics=metrics)
+                        else:
+                            self.lr_scheduler.step()
 
                     # IF we did better, update our saved best
                     if subset_acc > self.best_val_accuracy:
@@ -205,7 +210,6 @@ class Trainable:
     def _run_through_images(self, epoch, subset):
         if subset == "train":
             # update the learning rate scheduler only for train, once per epoch
-            self.lr_scheduler.step() if self.lr_scheduler else None
             self.model.train()  # set model to train mode
         else:
             self.model.eval()  # set model to evaluation mode
@@ -264,8 +268,8 @@ class Trainable:
     def _make_pbar_description(self, epoch, subset):
         description = f"Epoch {epoch + 1}, {subset.capitalize()}"
         # add best val to progress bar if we're in non-verbose mode
-        if self._verbose:
-            description += f', best val={self.best_val_accuracy:4f}'
+        if not self._verbose:
+            description += f", best val={self.best_val_accuracy:4f}"
         return description
 
     def _store_best(self, val_acc, train_acc, train_loss):
@@ -277,8 +281,8 @@ class Trainable:
         if self._verbose:
             remaining = self.early_stop_limit - self.early_stop_counter
             print(
-                'Model did not perform better.'
-                + f'Remaining tries: {remaining}/{self.early_stop_limit}'
+                "Model did not perform better."
+                + f"Remaining tries: {remaining}/{self.early_stop_limit}"
             )
         if self.early_stop_counter >= self.early_stop_limit:
             self.interrupted = True
@@ -310,10 +314,19 @@ class Trainable:
     def _print_train_summary(self):
         self.end_time = time.time()
         self.train_time = self.end_time - self.start_time
-        print(
-            f"Training completed in {int(self.train_time // 60)}m "
-            + f"{int(self.train_time % 60)}s"
-        )
-        print(f"Best validation accuracy: {self.best_val_accuracy:.4f}")
-        print(f"Associated train accuracy: {self.associated_train_accuracy:.4f}")
-        print(f"Associated train loss: {self.associated_train_loss:.4f}")
+
+        info = [
+            f"Best validation accuracy: {self.best_val_accuracy:.4f}",
+            f"Associated train accuracy: {self.associated_train_accuracy:.4f}",
+        ]
+
+        if self.verbose:
+            info.insert(
+                0,
+                f"Training completed in {int(self.train_time // 60)}m "
+                + f"{int(self.train_time % 60)}s",
+            )
+            info.extend([f"Associated train loss: {self.associated_train_loss:.4f}"])
+
+        sep = "\n" if self.verbose else "; "
+        print(*info, sep=sep)
