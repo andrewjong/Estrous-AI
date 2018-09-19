@@ -311,7 +311,8 @@ class Trainable:
         self.start_time = time.time()  # to keep track of elapsed time
         pass
 
-    def _print_train_summary(self, verbose=self._verbose):
+    def _print_train_summary(self, verbose=None):
+        verbose = verbose if verbose is not None else self._verbose
         self.end_time = time.time()
         self.train_time = self.end_time - self.start_time
 

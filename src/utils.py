@@ -274,10 +274,14 @@ def fit_model_last_to_dataset(model, dataset):
         except AttributeError as e:
             raise e
 
-    if "inception" in model.__name__:
+    if "inception" in get_model_name(model):
         model.aux_logits = False
 
     return model
+
+
+def get_model_name(model_fn):
+    return str(model_fn).split()[1]
 
 
 def build_model_from_args(model_args):
