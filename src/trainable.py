@@ -89,7 +89,7 @@ class Trainable:
             "finished_epochs": self.finished_epochs,
         }
         if extra_meta:
-            meta_dict = extra_meta.update(meta_dict)
+            meta_dict.update(extra_meta)
 
         meta_out = os.path.join(self.outdir, META_FNAME)
         with open(meta_out, "w") as out:
@@ -270,6 +270,9 @@ class Trainable:
         # add best val to progress bar if we're in non-verbose mode
         if not self._verbose:
             description += f", best val={self.best_val_accuracy:4f}"
+            if self.early_stop_counter and self.early_stop_counter > 0:
+                remaining = self.early_stop_limit - self.early_stop_counter
+                description += f" , remaining tries: {remaining}/{self.early_stop_limit}"
         return description
 
     def _store_best(self, val_acc, train_acc, train_loss):
@@ -278,6 +281,7 @@ class Trainable:
         self.associated_train_loss = train_loss
 
     def _increment_stop_limit(self):
+        self.early_stop_counter += 1
         if self._verbose:
             remaining = self.early_stop_limit - self.early_stop_counter
             print(
