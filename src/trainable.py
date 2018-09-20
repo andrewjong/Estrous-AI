@@ -329,5 +329,5 @@ class Trainable:
             )
             info.extend([f"Associated train loss: {self.associated_train_loss:.4f}"])
 
-        sep = "\n" if self.verbose else "; "
+        sep = "\n" if verbose else "; "
         print(*info, sep=sep)
