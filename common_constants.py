@@ -9,7 +9,8 @@ PREDICT_RESULTS_FNAME = "predictions.csv"
 PHASE_ORDER = {'p': 1, 'e': 2, 'm': 3, 'd': 4}  # ordering of estrous cycle
 
 MODEL_TO_IMAGE_SIZE = {
-    "inception": 299,
+    "inceptionv4": 299,
+    "inceptionresnetv2": 299,
     "nasnetalarge": 331,
     "pnasnet5large": 331,
     "polynet": 331,
