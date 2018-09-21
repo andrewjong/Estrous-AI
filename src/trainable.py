@@ -269,16 +269,16 @@ class Trainable:
         description = f"Epoch {epoch + 1}, {subset.capitalize()}"
         # add best val to progress bar if we're in non-verbose mode
         if not self._verbose:
-            description += f", best val={self.best_val_accuracy:4f}"
+            description += f", best val={self.best_val_accuracy:.4f}"
             if self.early_stop_counter and self.early_stop_counter > 0:
                 remaining = self.early_stop_limit - self.early_stop_counter
-                description += f" , remaining tries: {remaining}/{self.early_stop_limit}"
+                description += f" , remaining tries: {remaining}"
         return description
 
     def _store_best(self, val_acc, train_acc, train_loss):
-        self.best_val_accuracy = val_acc
-        self.associated_train_accuracy = train_acc
-        self.associated_train_loss = train_loss
+        self.best_val_accuracy = float(val_acc)
+        self.associated_train_accuracy = float(train_acc)
+        self.associated_train_loss = float(train_loss)
 
     def _increment_stop_limit(self):
         self.early_stop_counter += 1
