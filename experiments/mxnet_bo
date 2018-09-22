@@ -7,5 +7,6 @@ Optimized Parameters:
 	batch_size:	64.0
 	n_epochs:	100.0
 
+Optimizer: SGD
 optimized loss: 0.962432066599528
 Compute Time: 50 minutes
