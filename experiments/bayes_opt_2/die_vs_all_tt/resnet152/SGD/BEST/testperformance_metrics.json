@@ -1,0 +1,13 @@
+{
+    "accuracy": 0.9018691588785047,
+    "confusion_matrix": "[[109  12]\n [  9  84]]",
+    "precisionmicro": 0.9018691588785047,
+    "precisionmacro": 0.899364406779661,
+    "precisionweighted": 0.9025522730872803,
+    "recallmicro": 0.9018691588785047,
+    "recallmacro": 0.9020261263663023,
+    "recallweighted": 0.9018691588785047,
+    "f1micro": 0.9018691588785047,
+    "f1macro": 0.900511390051139,
+    "f1weighted": 0.9020320911377885
+}
