@@ -6,7 +6,19 @@ Optimized Parameters:
 	decay_steps:	0.1427097982821833
 	batch_size:	64.0
 	n_epochs:	100.0
-
-Optimizer: SGD
 optimized loss: 0.962432066599528
+optimizer: SGD
 Compute Time: 50 minutes
+
+GPyOpt Bayesian Optimization -- squeezenet
+Optimized Parameters:
+	drpout:	0.7935347167576574
+	lrt:	9.106602074275197e-05
+	decay_rt:	0.09311624133939585
+	decay_steps:	0.2374386156507714
+	batch_size:	16.0
+	n_epochs:	50.0
+optimized loss: 0.5721153616905212
+optimized accuracy: 0.64
+optimizer: SGD
+Compute Time: 30 minutes
