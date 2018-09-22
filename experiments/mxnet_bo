@@ -1,0 +1,11 @@
+GPyOpt Bayesian Optimization -- bvlc_googlenet
+Optimized Parameters:
+	drpout:	0.4582299165623727
+	lrt:	6.3520935472403e-05
+	decay_rt:	0.12402317931717116
+	decay_steps:	0.1427097982821833
+	batch_size:	64.0
+	n_epochs:	100.0
+
+optimized loss: 0.962432066599528
+
