@@ -22,3 +22,15 @@ optimized loss: 0.5721153616905212
 optimized accuracy: 0.64
 optimizer: SGD
 Compute Time: 30 minutes
+
+Optimized Parameters:
+	drpout:	0.3550858325159498
+	lrt:	7.810790424197775e-05
+	decay_rt:	0.20485243393357627
+	decay_steps:	0.34957216161349025
+	batch_size:	16.0
+	n_epochs:	50.0
+optimized loss: 0.5721153616905212
+optimized accuracy: 0.609
+optimizer: RMSPROP
+Compute Time: 25 minutes
