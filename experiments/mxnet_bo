@@ -12,6 +12,18 @@ Compute Time: 50 minutes
 
 GPyOpt Bayesian Optimization -- squeezenet (4 classes)
 Optimized Parameters:
+	drpout:	0.579974913215328
+	lrt:	4.1883273618494885e-05
+	decay_rt:	0.31189680157635086
+	decay_steps:	0.4012291866358274
+	batch_size:	16.0
+	n_epochs:	30.0
+optimized loss: 0.5769230723381042
+optimized accuracy: 0.648
+optimizer: Adam
+Compute Time: 29 minutes
+
+Optimized Parameters:
 	drpout:	0.7935347167576574
 	lrt:	9.106602074275197e-05
 	decay_rt:	0.09311624133939585
