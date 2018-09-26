@@ -68,7 +68,7 @@ class Trainable:
         model_dict.update(pretrained_weights_dict)
         self.model.load_state_dict(model_dict)
 
-    def save(self, extra_meta=None):
+    def save(self, extra_meta=None, save_model=True):
         """Saves the model weights (via state dict) and meta info about how the
          model was trained to the specified output directory.
 
@@ -79,14 +79,16 @@ class Trainable:
             extra_meta {dict} -- extra information to put in the meta file
             (default: {None})
         """
-        model_file = os.path.join(self.outdir, MODEL_PARAMS_FNAME)
-        torch.save(self.model.state_dict(), model_file)
+        if save_model:
+            model_file = os.path.join(self.outdir, MODEL_PARAMS_FNAME)
+            torch.save(self.model.state_dict(), model_file)
 
         meta_dict = {
             "best_val_accuracy": self.best_val_accuracy,
             "train_accuracy": self.associated_train_accuracy,
             "train_loss": self.associated_train_loss,
             "finished_epochs": self.finished_epochs,
+            "train_duration_minutes": self.train_time / 60
         }
         if extra_meta:
             meta_dict.update(extra_meta)
