@@ -1,0 +1,12 @@
+{
+    "best_val_accuracy": 0.7790055248618785,
+    "train_accuracy": 0.8141592920353983,
+    "train_loss": 0.5036126430876253,
+    "finished_epochs": 17,
+    "train_duration_minutes": 6.051290508111318,
+    "batch_size": 4.0,
+    "lr_decay": 0.3,
+    "lr": 0.01373464335193624,
+    "momentum": 0.6421204867897048,
+    "weight_decay": 0.7643228580235404
+}
