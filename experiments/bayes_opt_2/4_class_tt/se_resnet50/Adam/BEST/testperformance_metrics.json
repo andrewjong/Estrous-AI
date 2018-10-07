@@ -1,13 +1,13 @@
 {
-    "accuracy": 0.822429906542056,
-    "confusion_matrix": "[[ 24   7   2   1]\n [  2  32   2   0]\n [  3   4  11   5]\n [  8   3   1 109]]",
-    "precisionmicro": 0.822429906542056,
-    "precisionmacro": 0.7449067273795534,
-    "precisionweighted": 0.8298924711993586,
-    "recallmicro": 0.822429906542056,
-    "recallmacro": 0.7434646394190686,
-    "recallweighted": 0.822429906542056,
-    "f1micro": 0.822429906542056,
-    "f1macro": 0.736093880142026,
-    "f1weighted": 0.8216309433813292
+    "accuracy": 0.7897196261682243,
+    "confusion_matrix": "[[ 19   7   2   6]\n [  2  29   4   1]\n [  4   2  11   6]\n [  7   2   2 110]]",
+    "precisionmicro": 0.7897196261682243,
+    "precisionmacro": 0.6980015778776208,
+    "precisionweighted": 0.7841807083528288,
+    "recallmicro": 0.7897196261682243,
+    "recallmacro": 0.6879327159058617,
+    "recallweighted": 0.7897196261682243,
+    "f1micro": 0.7897196261682243,
+    "f1macro": 0.6910910846415592,
+    "f1weighted": 0.7859599135029937
 }
