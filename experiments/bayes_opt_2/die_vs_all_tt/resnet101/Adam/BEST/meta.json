@@ -1,12 +1,13 @@
 {
     "best_val_accuracy": 0.888888888888889,
-    "train_accuracy": 0.9263261296660117,
-    "train_loss": 0.16929924473429944,
+    "train_accuracy": 0.8408644400785854,
+    "train_loss": 0.35980502344770376,
     "finished_epochs": 50,
-    "batch_size": 64.0,
-    "lr_decay": 0.06405169145862531,
-    "adam_lr": 0.07014602864997546,
-    "adam_beta1": 0.9690131917733109,
-    "adam_beta2": 0.9620075883791733,
-    "adam_wtdecay": 0.4090024812266606
+    "train_duration_minutes": 25.118522548675536,
+    "batch_size": 4.0,
+    "lr_decay": 0.049989082556201186,
+    "adam_lr": 0.0016650309253704826,
+    "adam_beta1": 0.8436118941884462,
+    "adam_beta2": 0.9041118252600103,
+    "adam_wtdecay": 0.7653942892827043
 }

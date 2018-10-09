@@ -1,13 +1,13 @@
 {
-    "accuracy": 0.8785046728971962,
-    "confusion_matrix": "[[105  16]\n [ 10  83]]",
-    "precisionmicro": 0.8785046728971962,
-    "precisionmacro": 0.8757136583223539,
-    "precisionweighted": 0.880597933828328,
-    "recallmicro": 0.8785046728971962,
-    "recallmacro": 0.8801208566604461,
-    "recallweighted": 0.8785046728971962,
-    "f1micro": 0.8785046728971962,
-    "f1macro": 0.8772069209039548,
-    "f1weighted": 0.8788586052589894
+    "accuracy": 0.8738317757009346,
+    "confusion_matrix": "[[108  13]\n [ 14  79]]",
+    "precisionmicro": 0.8738317757009346,
+    "precisionmacro": 0.8719707769066287,
+    "precisionweighted": 0.8737077091146476,
+    "recallmicro": 0.8738317757009346,
+    "recallmacro": 0.8710121745312361,
+    "recallweighted": 0.8738317757009346,
+    "f1micro": 0.8738317757009346,
+    "f1macro": 0.8714714714714714,
+    "f1weighted": 0.8737503858999185
 }
