@@ -68,7 +68,7 @@ class Trainable:
         model_dict.update(pretrained_weights_dict)
         self.model.load_state_dict(model_dict)
 
-    def save(self, extra_meta=None):
+    def save(self, extra_meta=None, save_model=True):
         """Saves the model weights (via state dict) and meta info about how the
          model was trained to the specified output directory.
 
@@ -79,17 +79,19 @@ class Trainable:
             extra_meta {dict} -- extra information to put in the meta file
             (default: {None})
         """
-        model_file = os.path.join(self.outdir, MODEL_PARAMS_FNAME)
-        torch.save(self.model.state_dict(), model_file)
+        if save_model:
+            model_file = os.path.join(self.outdir, MODEL_PARAMS_FNAME)
+            torch.save(self.model.state_dict(), model_file)
 
         meta_dict = {
             "best_val_accuracy": self.best_val_accuracy,
             "train_accuracy": self.associated_train_accuracy,
             "train_loss": self.associated_train_loss,
             "finished_epochs": self.finished_epochs,
+            "train_duration_minutes": self.train_time / 60
         }
         if extra_meta:
-            meta_dict = extra_meta.update(meta_dict)
+            meta_dict.update(extra_meta)
 
         meta_out = os.path.join(self.outdir, META_FNAME)
         with open(meta_out, "w") as out:
@@ -269,15 +271,19 @@ class Trainable:
         description = f"Epoch {epoch + 1}, {subset.capitalize()}"
         # add best val to progress bar if we're in non-verbose mode
         if not self._verbose:
-            description += f", best val={self.best_val_accuracy:4f}"
+            description += f", best val={self.best_val_accuracy:.4f}"
+            if self.early_stop_counter and self.early_stop_counter > 0:
+                remaining = self.early_stop_limit - self.early_stop_counter
+                description += f" , remaining tries: {remaining}"
         return description
 
     def _store_best(self, val_acc, train_acc, train_loss):
-        self.best_val_accuracy = val_acc
-        self.associated_train_accuracy = train_acc
-        self.associated_train_loss = train_loss
+        self.best_val_accuracy = float(val_acc)
+        self.associated_train_accuracy = float(train_acc)
+        self.associated_train_loss = float(train_loss)
 
     def _increment_stop_limit(self):
+        self.early_stop_counter += 1
         if self._verbose:
             remaining = self.early_stop_limit - self.early_stop_counter
             print(
@@ -329,5 +335,5 @@ class Trainable:
             )
             info.extend([f"Associated train loss: {self.associated_train_loss:.4f}"])
 
-        sep = "\n" if self.verbose else "; "
+        sep = "\n" if verbose else "; "
         print(*info, sep=sep)

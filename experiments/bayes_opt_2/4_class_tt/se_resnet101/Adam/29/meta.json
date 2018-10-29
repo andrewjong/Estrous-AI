@@ -1,0 +1,13 @@
+{
+    "best_val_accuracy": 0.7790055248618785,
+    "train_accuracy": 0.8121927236971486,
+    "train_loss": 0.5125247981461569,
+    "finished_epochs": 20,
+    "train_duration_minutes": 13.468979664643605,
+    "batch_size": 4.0,
+    "lr_decay": 0.03,
+    "adam_lr": 0.02076785659170626,
+    "adam_beta1": 0.871632142259346,
+    "adam_beta2": 0.9555270478575971,
+    "adam_wtdecay": 0.6749436615342377
+}
