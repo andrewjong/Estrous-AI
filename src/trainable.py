@@ -337,3 +337,7 @@ class Trainable:
 
         sep = "\n" if verbose else "; "
         print(*info, sep=sep)
+        summary_path = os.path.join(self.outdir, "summary.txt")
+        with open(summary_path, "w") as f:
+            summary = "\n".join(info) + "\n"
+            f.write(summary)
