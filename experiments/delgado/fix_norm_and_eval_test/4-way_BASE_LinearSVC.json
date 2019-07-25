@@ -1,0 +1,16 @@
+{
+    "time_start": "2019-07-25_01-01_15",
+    "time_end": "2019-07-25_01-01_50",
+    "duration": "0:00:35.131090",
+    "model": "LinearSVC",
+    "dataset": "BASE",
+    "class_groups": "['diestrus', 'estrus', 'metestrus', 'proestrus']",
+    "space": "[Real(low=1, high=1000000, prior='log-uniform', transform='identity'), Categorical(categories=('balanced', None), prior=None)]",
+    "best_validation": 0.1602670849771613,
+    "best_parameters": {
+        "C": 3606.3486397284664,
+        "class_weight": null
+    },
+    "best_train": 0.16026711185308848,
+    "best_test": 0.14977973568281938
+}

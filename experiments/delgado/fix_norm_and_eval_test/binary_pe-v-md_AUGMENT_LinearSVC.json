@@ -1,0 +1,16 @@
+{
+    "time_start": "2019-07-25_01-00_19",
+    "time_end": "2019-07-25_01-00_47",
+    "duration": "0:00:28.004013",
+    "model": "LinearSVC",
+    "dataset": "AUGMENT",
+    "class_groups": "['metestrus_diestrus', 'proestrus_estrus']",
+    "space": "[Real(low=1, high=1000000, prior='log-uniform', transform='identity'), Categorical(categories=('balanced', None), prior=None)]",
+    "best_validation": 0.6736227211042201,
+    "best_parameters": {
+        "C": 3606.3486397284664,
+        "class_weight": null
+    },
+    "best_train": 0.5,
+    "best_test": 0.6916299559471366
+}

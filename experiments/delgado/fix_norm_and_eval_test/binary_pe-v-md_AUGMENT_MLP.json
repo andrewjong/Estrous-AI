@@ -1,0 +1,22 @@
+{
+    "time_start": "2019-07-25_00-08_16",
+    "time_end": "2019-07-25_00-22_23",
+    "duration": "0:14:07.105006",
+    "model": "MLP",
+    "dataset": "AUGMENT",
+    "class_groups": "['metestrus_diestrus', 'proestrus_estrus']",
+    "space": "[Real(low=0.001, high=1.0, prior='log-uniform', transform='identity'), Real(low=1e-05, high=1.0, prior='log-uniform', transform='identity'), Integer(low=200, high=400), Integer(low=0, high=150), Integer(low=0, high=150), Integer(low=0, high=150), Integer(low=0, high=150), Integer(low=0, high=150)]",
+    "best_validation": 0.8566184523610391,
+    "best_parameters": {
+        "learning_rate_init": 0.005313753829770292,
+        "alpha": 1.0,
+        "max_iter": 204,
+        "n_layer_0": 150,
+        "n_layer_1": 71,
+        "n_layer_2": 0,
+        "n_layer_3": 109,
+        "n_layer_4": 150
+    },
+    "best_train": 0.9474571078431373,
+    "best_test": 0.8799559471365639
+}

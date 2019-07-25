@@ -1,0 +1,18 @@
+{
+    "time_start": "2019-07-24_20-34_50",
+    "time_end": "2019-07-24_20-35_59",
+    "duration": "0:01:08.302865",
+    "model": "RBFSVC",
+    "dataset": "BASE",
+    "class_groups": "['diestrus', 'proestrus_estrus_metestrus']",
+    "space": "[Real(low=100.0, high=10000.0, prior='log-uniform', transform='identity'), Categorical(categories=('balanced', None), prior=None), Categorical(categories=('rbf',), prior=None), Real(low=0.01, high=10, prior='log-uniform', transform='identity')]",
+    "best_validation": 0.8746489447904698,
+    "best_parameters": {
+        "C": 127.14120359629605,
+        "class_weight": null,
+        "kernel": "rbf",
+        "gamma": 0.015216333684024658
+    },
+    "best_train": 0.9209098497495827,
+    "best_test": 0.9008810572687225
+}
