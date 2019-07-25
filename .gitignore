@@ -6,3 +6,5 @@ models
 models/
 *.pth
 .ipynb_checkpoints
+*.joblib
+*.pkl

@@ -1,0 +1,18 @@
+{
+    "time_start": "2019-07-24_21-04_49",
+    "time_end": "2019-07-24_21-14_47",
+    "duration": "0:09:57.499756",
+    "model": "PolySVC",
+    "dataset": "BASE",
+    "class_groups": "['diestrus', 'estrus', 'metestrus', 'proestrus']",
+    "space": "[Real(low=1, high=1000000, prior='log-uniform', transform='identity'), Categorical(categories=('balanced', None), prior=None), Categorical(categories=('poly',), prior=None), Real(low=0.01, high=10, prior='log-uniform', transform='identity')]",
+    "best_validation": 0.7211997653249416,
+    "best_parameters": {
+        "C": 1000000.0,
+        "class_weight": "balanced",
+        "kernel": "poly",
+        "gamma": 10.0
+    },
+    "best_train": 0.8165692821368948,
+    "best_test": 0.7525697503671072
+}

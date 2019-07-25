@@ -1,0 +1,18 @@
+{
+    "time_start": "2019-07-24_19-55_24",
+    "time_end": "2019-07-24_20-16_38",
+    "duration": "0:21:14.591840",
+    "model": "RBFSVC",
+    "dataset": "AUGMENT",
+    "class_groups": "['diestrus', 'estrus', 'metestrus', 'proestrus']",
+    "space": "[Real(low=100.0, high=10000.0, prior='log-uniform', transform='identity'), Categorical(categories=('balanced', None), prior=None), Categorical(categories=('rbf',), prior=None), Real(low=0.01, high=10, prior='log-uniform', transform='identity')]",
+    "best_validation": 0.7369189180876996,
+    "best_parameters": {
+        "C": 100.0,
+        "class_weight": null,
+        "kernel": "rbf",
+        "gamma": 0.01
+    },
+    "best_train": 0.9172487745098039,
+    "best_test": 0.7544052863436124
+}
